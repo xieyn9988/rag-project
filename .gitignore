@@ -1,0 +1,21 @@
+# 敏感配置
+.env
+
+# 数据与存储
+data/
+storage/
+chroma_db/
+cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Notebook 输出
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,41 @@
+[project]
+name = "rag-project"
+version = "0.1.0"
+description = "RAG QA system with LangChain + ChromaDB + DeepSeek"
+requires-python = ">=3.10"
+
+dependencies = [
+    "chromadb>=1.5.0",
+    "langchain>=1.0.0",
+    "langchain-community>=0.3.0",
+    "langchain-text-splitters>=0.3.0",
+    "pypdf>=4.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "openai>=1.0.0",
+    "gradio>=4.0.0",
+    "sentence-transformers>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "ruff",
+    "ipykernel",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
