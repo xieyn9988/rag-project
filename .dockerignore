@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# 数据与存储（运行时挂载，不进镜像）
+data/
+storage/
+chroma_db/
+cache/
+notebooks/
+
+# 敏感配置
+.env
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 大文件 / 实验产物
+*.ipynb
+rag_notebook.ipynb
+knowledge/

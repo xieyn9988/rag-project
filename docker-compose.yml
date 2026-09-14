@@ -1,0 +1,32 @@
+services:
+  rag-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rag-api:0.1.0
+    container_name: rag-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # HF 镜像（首次下载模型时走国内镜像）
+      HF_ENDPOINT: "https://hf-mirror.com"
+      # 模型缓存目录（挂载到卷，重建镜像不丢）
+      HF_HOME: "/app/storage/hf_cache"
+    volumes:
+      # 数据目录（放 PDF/TXT）
+      - ./data:/app/data
+      # 向量库持久化
+      - ./storage/chroma_db:/app/storage/chroma_db
+      # HF 模型缓存持久化
+      - ./storage/hf_cache:/app/storage/hf_cache
+      # Prompt 配置（改完不用重建镜像）
+      - ./configs:/app/configs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
