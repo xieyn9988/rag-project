@@ -70,7 +70,7 @@ rag-project/
 
 ```bash
 # 1. 克隆
-git clone https://github.com/yourname/rag-project.git
+git clone https://github.com/xieyn9988/rag-project.git
 cd rag-project
 
 # 2. 创建虚拟环境
