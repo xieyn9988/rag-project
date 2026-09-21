@@ -36,7 +36,7 @@
 
 ## 🖼️ 效果演示
 
-### 问答界面（Vue3 + Element Plus）
+### 流程展示（Vue3 + Element Plus）
 
 ![chat demo](./docs/screenshots/chat_demo.gif)
 
