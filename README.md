@@ -1,6 +1,6 @@
 # 电商客服 RAG 智能问答系统
 
-> 基于 **LangChain + ChromaDB + BGE + DeepSeek** 构建的电商客服 RAG 系统，支持售后政策、商品信息、物流规则的智能问答。**提供 Vue3 全栈前端 + FastAPI 接口 + Streaming 流式输出 + 上传资料（活学活用）**，Docker 一键部署。
+> 基于 **LangChain + ChromaDB + BGE + DeepSeek** 构建的电商客服 RAG 系统，支持售后政策、商品信息、物流规则的智能问答。**提供 Vue3 全栈前端 + FastAPI 接口 + Streaming 流式输出 + 上传资料（现传现用）**，Docker 一键部署。
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal)
@@ -26,19 +26,15 @@
 
 ---
 
-## 📊 项目成果
+## 📊 项目亮点
 
-| 指标 | 数值 |
-|------|------|
-| 知识库文档数 | 50+（覆盖 4 大业务域） |
-| 向量库 chunk 数 | 800+ |
-| **首字响应时间** | **< 1s**（Streaming） |
-| **完整回答时间** | **< 5s** |
-| Reranker 精度提升 | +18%（对比纯向量召回） |
-| 客服平均处理时长 | 从 2.5 分钟 → 40 秒 |
-| **上传文档后生效时间** | **< 5s**（活学活用） |
-
-> 数据来源于 100 条真实客服问答抽检 + 内部压测。
+- **多格式文档摄入**：PDF / TXT / Markdown
+- **Streaming 流式输出**：SSE 协议逐 token 推送，用户看到打字机效果，无需等待全文生成
+- **Reranker 精排**：向量召回 top_k × 3，CrossEncoder 重排序提升检索质量
+- **引用可追溯**：每个回答附带原始文档片段 + 相似度，避免 LLM 幻觉
+- **上传资料（活学活用）**：上传文档后自动重建索引，新知识立即生效
+- **国内网络优化**：`HF_ENDPOINT=hf-mirror.com` 切换国内镜像，模型下载速度和稳定性显著提升
+- **全栈实现**：Vue3 前端 + FastAPI 后端 + CLI，Docker 一键部署
 
 ---
 
@@ -63,7 +59,7 @@
 
 1. 拖拽 TXT / MD / PDF 文件到上传区
 2. 点击"上传并重建索引"
-3. 系统自动 ingest，**5 秒后即可基于新文档问答**
+3. 系统自动 ingest，**5-25 秒后即可基于新文档问答**
 4. 上传成功后自动切回问答 Tab，立即可问
 
 ### 输入示例
@@ -86,7 +82,7 @@
 
 *   **多格式文档摄入**：PDF / TXT / Markdown
 *   **中文语义检索**：`BAAI/bge-small-zh-v1.5` embedding + ChromaDB 向量库
-*   **精排重排序**：`BAAI/bge-reranker-base` CrossEncoder 精排，检索精度 +18%
+*   **精排重排序**：`BAAI/bge-reranker-base` CrossEncoder 精排，检索精度大幅提升
 *   **LLM 生成**：DeepSeek Chat 基于检索内容生成回答，避免幻觉
 *   **来源引用**：每个回答都附带原始文档链接，可追溯
 
@@ -94,8 +90,8 @@
 
 | 优化 | 效果 |
 |------|------|
-| **Streaming 流式输出**（SSE） | 首字响应从 10s → **< 1s** |
-| **top_k 调优**（默认 2） | 上下文短，生成快 |
+| **Streaming 流式输出**（SSE） | 用户无需等待全文生成，首字立即展示 |
+| **top_k 调优**（默认 2） | 上下文更短，生成更快 |
 | **max_tokens 限制**（500） | 避免 LLM 生成长篇大论 |
 
 ### 📤 上传资料（活学活用）
@@ -107,7 +103,7 @@
 1. 管理员上传新政策文档（TXT / MD / PDF）
 2. 系统自动：切块 → embedding → 存入 ChromaDB
 3. **重置 RAGChain 单例**（避免 collection 句柄失效）
-4. 5 秒后，客服就能基于新政策问答，**回答带引用来源**
+4. ingest 完成后，客服即可基于新政策问答，**回答带引用来源**
 
 **电商场景价值**：
 
@@ -304,8 +300,8 @@ docker compose up -d
 
 *   拖拽 TXT / MD / PDF 文件到上传区
 *   点击"上传并重建索引"
-*   系统自动 ingest，**5 秒后即可基于新文档问答**
-*   上传成功后自动切回问答 Tab，立即可问
+*   系统自动 ingest（切块 + embedding + 入库 + 刷新 RAGChain）
+*   完成后切回问答 Tab，即可基于新文档问答
 
 ### 集成到现有客服系统（API）
 
@@ -416,7 +412,9 @@ python scripts/check_all.py
 
 ### 3. Reranker 精排
 
-向量召回 `top_k × 3` 条候选文档，用 CrossEncoder 精排后取 `top_k`，**检索精度 +18%**。
+向量召回 `top_k × 3` 条候选文档，用 `bge-reranker-base` CrossEncoder 精排后取 `top_k`。
+
+**为什么这么做**：纯向量检索只考虑语义相似度，容易漏掉真正相关的文档。CrossEncoder 会同时看 query 和 doc，精排能力更强。
 
 ### 4. 单例管理
 
@@ -436,7 +434,7 @@ python scripts/check_all.py
 
 ### 8. 国内网络优化
 
-`HF_ENDPOINT=hf-mirror.com`，模型下载从超时 → 12MB/s。
+`HF_ENDPOINT=hf-mirror.com` 切换 HuggingFace 到国内镜像，模型下载速度和稳定性显著提升。
 
 ---
 
