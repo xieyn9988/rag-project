@@ -1,4 +1,10 @@
 # apps/gradio_app.py
+
+import os
+
+# ⚠️ 必须在导入 rag 之前设置，否则模型仍会走官方源
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 import shutil
 from pathlib import Path
 
@@ -67,9 +73,9 @@ def upload_and_ingest(files):
     return "\n".join(saved)
 
 
-with gr.Blocks(title="RAG 智能问答") as demo:
-    gr.Markdown("# 🧠 RAG 智能问答系统")
-    gr.Markdown("基于 **LangChain + ChromaDB + BGE + DeepSeek**")
+with gr.Blocks(title="电商客服 RAG 智能问答系统") as demo:
+    gr.Markdown("# 🛒 电商客服 RAG 智能问答系统")
+    gr.Markdown("输入客户问题，系统会自动检索政策文档并生成回答。")
 
     with gr.Tabs():
         with gr.Tab("💬 问答"):

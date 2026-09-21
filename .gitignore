@@ -7,6 +7,7 @@ data/
 storage/
 chroma_db/
 cache/
+*.chroma
 
 # Python
 __pycache__/
@@ -36,3 +37,7 @@ build.log
 
 # 模型缓存
 .huggingface/
+
+
+
+

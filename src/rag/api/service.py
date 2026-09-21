@@ -1,11 +1,12 @@
 # src/rag/api/service.py
 import threading
-from typing import Optional
+from typing import Iterator, Optional
 
 from rag.config import settings
 from rag.ingestion.pipeline import ingest
 from rag.logging_config import get_logger
 from rag.rag import RAGChain, RAGResponse
+from rag.rag.chain import StreamChunk
 
 logger = get_logger(__name__)
 
@@ -44,9 +45,24 @@ def run_ingest(rebuild: bool = False) -> int:
 
 
 def run_query(question: str, top_k: int | None = None) -> RAGResponse:
-    """执行问答"""
+    """执行非流式问答"""
     chain = get_chain()
     return chain.query(question, top_k=top_k)
+
+
+def stream_query(question: str, top_k: int | None = None) -> Iterator[StreamChunk]:
+    """
+    执行流式问答：返回 Generator，逐条 yield StreamChunk
+    
+    用法（在 routes.py 里）：
+        for chunk in service.stream_query(question, top_k=2):
+            if chunk.type == "content":
+                ...
+            elif chunk.type == "references":
+                ...
+    """
+    chain = get_chain()
+    return chain.stream_query(question, top_k=top_k)
 
 
 def doc_count() -> int:

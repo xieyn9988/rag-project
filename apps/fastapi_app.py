@@ -3,6 +3,11 @@
 
 或者直接：python apps/fastapi_app.py
 """
+import os
+
+# ⚠️ 必须在导入 rag 模块之前设置，否则 HuggingFace 模型仍会走官方源
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 import uvicorn
 
 from rag.api.app import app  # noqa: F401  让 uvicorn 能找到 app
