@@ -45,7 +45,7 @@
 
 ### 前端界面（Vue3 + Element Plus）
 
-![chat demo](./docs/screenshots/chat_demo.png)
+![chat demo](./docs/screenshots/chat_demo.gif)
 
 **核心交互**：
 
