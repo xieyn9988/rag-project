@@ -1,43 +1,70 @@
-# 敏感配置
+# ==================== 敏感配置 ====================
 .env
 .env.local
+*.key
+secrets.yaml
 
-# 数据与存储（运行时产生）
-data/
+# ==================== 数据与存储 ====================
+# 排除运行时产生的向量库和缓存
 storage/
 chroma_db/
 cache/
 *.chroma
+.huggingface/
 
-# Python
+# 保留 data/ 目录结构，但排除用户上传的临时文件
+# data/text/ 和 data/pdfs/ 下的示例文档要保留！
+data/**/*.tmp
+data/**/*.bak
+
+# ==================== Python ====================
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
+*.egg
 .venv/
 venv/
+env/
+ENV/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 build/
 dist/
+*.so
 
-# Jupyter
+# ==================== Jupyter ====================
 .ipynb_checkpoints/
 *.ipynb
 
-# IDE
+# ==================== IDE ====================
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 
-# 日志
+# ==================== 日志 ====================
 *.log
+logs/
 build.log
+*.out
 
-# 模型缓存
-.huggingface/
+# ==================== 前端 ====================
+node_modules/
+rag-frontend/dist/
+rag-frontend/.vite/
+rag-frontend/node_modules/
 
+# ==================== 测试 ====================
+.coverage
+htmlcov/
+.tox/
 
-
-
+# ==================== 其他 ====================
+*.pid
+*.seed
+*.bak

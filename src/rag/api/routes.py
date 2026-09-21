@@ -1,9 +1,12 @@
 # src/rag/api/routes.py
 import json
 import os
+import shutil
 import time
+from pathlib import Path
+from typing import List          # ⚠️ 关键：加这一行，否则 List 会报 NameError
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from rag.api import service
@@ -15,6 +18,7 @@ from rag.api.schemas import (
     QueryResponse,
     Reference,
     RetrievedDoc,
+    UploadResponse,
 )
 from rag.config import settings
 from rag.logging_config import get_logger
@@ -147,4 +151,57 @@ def query_stream_endpoint(req: QueryRequest):
             "X-Accel-Buffering": "no",  # 告诉 Nginx 不要缓冲
             "Connection": "keep-alive",
         },
+    )
+
+
+# ==================== 上传资料 ====================
+
+@router.post("/ingest/upload", response_model=UploadResponse, tags=["data"])
+async def ingest_upload_endpoint(files: List[UploadFile] = File(...)):
+    """
+    上传资料：接收 TXT / MD / PDF，保存到 data/ 目录，然后重建索引。
+    """
+    start = time.time()
+    data_dir = settings.resolve(settings.data_dir)
+
+    uploaded_names: List[str] = []
+    skipped_names: List[str] = []
+
+    for file in files:
+        suffix = Path(file.filename).suffix.lower()
+
+        if suffix == ".pdf":
+            target_dir = data_dir / "pdfs"
+        elif suffix in (".txt", ".md"):
+            target_dir = data_dir / "text"
+        else:
+            skipped_names.append(file.filename)
+            continue
+
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_path = target_dir / file.filename
+
+        with open(target_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        uploaded_names.append(file.filename)
+        logger.info(f"上传文件: {file.filename} → {target_path}")
+
+    try:
+        total = service.ingest_uploaded_files([])
+    except Exception as e:
+        logger.exception("上传后摄入失败")
+        raise HTTPException(status_code=500, detail=f"摄入失败: {str(e)}")
+
+    elapsed_ms = int((time.time() - start) * 1000)
+    logger.info(
+        f"上传完成: {len(uploaded_names)} 个文件, "
+        f"共 {total} 个文本块, {elapsed_ms}ms"
+    )
+
+    return UploadResponse(
+        total=total,
+        uploaded=uploaded_names,
+        skipped=skipped_names,
+        elapsed_ms=elapsed_ms,
     )

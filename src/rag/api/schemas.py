@@ -43,6 +43,12 @@ class IngestRequest(BaseModel):
 class IngestResponse(BaseModel):
     total: int = Field(..., description="摄入后的文档总数")
 
+class UploadResponse(BaseModel):
+    """上传文件后的响应"""
+    total: int = Field(..., description="摄入后的文档块总数")
+    uploaded: List[str] = Field(default_factory=list, description="成功上传的文件名列表")
+    skipped: List[str] = Field(default_factory=list, description="跳过的文件（不支持的格式）")
+    elapsed_ms: int = Field(..., description="耗时（毫秒）")
 
 # ==================== 系统 ====================
 

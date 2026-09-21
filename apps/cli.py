@@ -1,4 +1,9 @@
 # apps/cli.py
+import os
+
+# ⚠️ 必须在导入任何 rag 模块之前设置
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 import argparse
 import sys
 
