@@ -1,4 +1,9 @@
 # src/rag/retrieval/reranker.py
+
+import os
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 from typing import List, Tuple
 
 from langchain_core.documents import Document

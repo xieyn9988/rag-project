@@ -1,4 +1,8 @@
 # src/rag/embedding/local_bge.py
+import os
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 from typing import List
 
 from sentence_transformers import SentenceTransformer
