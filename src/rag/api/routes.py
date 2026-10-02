@@ -1,10 +1,13 @@
 # src/rag/api/routes.py
+import uuid  # 文件顶部加（如果没有）
+
 import json
 import os
 import shutil
 import time
 from pathlib import Path
 from typing import List          # ⚠️ 关键：加这一行，否则 List 会报 NameError
+
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -71,7 +74,7 @@ def query_endpoint(req: QueryRequest):
 
     # 完整检索结果（含正文，用于调试和前端展开）
     docs = [
-        RetrievedDoc(
+        RetrievedDoc(            
             content=d.page_content,
             score=float(s),
             source=d.metadata.get("source"),
@@ -96,6 +99,7 @@ def query_endpoint(req: QueryRequest):
     )
 
     return QueryResponse(
+        msg_id=str(uuid.uuid4()),          # 🆕
         question=resp.question,
         answer=resp.answer,
         retrieved=docs,
@@ -110,15 +114,23 @@ def query_stream_endpoint(req: QueryRequest):
     RAG 问答（流式）：SSE 协议，逐 token 返回内容 + 最后的引用列表。
 
     返回格式（SSE）：
+        data: {"type": "start", "msg_id": "xxx", "session_id": "xxx"}
         data: {"type": "content", "text": "亲~"}
         data: {"type": "content", "text": "关于退货..."}
         data: {"type": "references", "references": [{"source": "...", "score": 0.95}]}
+        data: {"type": "done", "elapsed_ms": 2340}
         data: [DONE]
     """
+    msg_id = str(uuid.uuid4())
+    session_id = f"session:{msg_id[:8]}"
     start = time.time()
 
     def event_generator():
+        # 🆕 ① 开头先发 start 事件（必须第一条）
+        yield f"data: {json.dumps({'type': 'start', 'msg_id': msg_id, 'session_id': session_id}, ensure_ascii=False)}\n\n"
+
         try:
+            # ② 现有流式逻辑（不改）
             for chunk in service.stream_query(req.question, top_k=req.top_k):
                 if chunk.type == "content":
                     payload = {"type": "content", "text": chunk.text}
@@ -129,10 +141,13 @@ def query_stream_endpoint(req: QueryRequest):
 
                 yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
-            # 结束标记
+            # 🆕 ③ 加 done 事件（带耗时）
+            elapsed_ms = int((time.time() - start) * 1000)
+            yield f"data: {json.dumps({'type': 'done', 'elapsed_ms': elapsed_ms}, ensure_ascii=False)}\n\n"
+
+            # ④ 结束标记
             yield "data: [DONE]\n\n"
 
-            elapsed_ms = int((time.time() - start) * 1000)
             logger.info(
                 f"StreamQuery: '{req.question[:30]}' → {elapsed_ms}ms (完成)"
             )
@@ -148,7 +163,7 @@ def query_stream_endpoint(req: QueryRequest):
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # 告诉 Nginx 不要缓冲
+            "X-Accel-Buffering": "no",
             "Connection": "keep-alive",
         },
     )
@@ -205,3 +220,41 @@ async def ingest_upload_endpoint(files: List[UploadFile] = File(...)):
         skipped=skipped_names,
         elapsed_ms=elapsed_ms,
     )
+
+
+# ============ Feedback 端点 ============
+from rag.api.schemas import FeedbackRequest, FeedbackResponse, ReportResponse
+from rag.feedback import collect_explicit, generate_report, load_all
+
+
+@router.post("/feedback", response_model=FeedbackResponse, tags=["feedback"])
+def feedback_endpoint(req: FeedbackRequest):
+    """采集用户对某次问答的反馈（👍/👎）"""
+    try:
+        collect_explicit(
+            session_id=req.session_id,
+            msg_id=req.msg_id,
+            question=req.question,
+            answer=req.answer,
+            satisfied=req.satisfied,
+            rerank_scores=req.rerank_scores,
+            retrieved_snippets=req.retrieved_snippets,
+        )
+        return FeedbackResponse(
+            ok=True,
+            message=f"已记录：{'满意' if req.satisfied else '不满意'}",
+        )
+    except Exception as e:
+        logger.exception("feedback 失败")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/feedback/report", response_model=ReportResponse, tags=["feedback"])
+def feedback_report():
+    """生成 Badcase 归因 + 知识缺口报告"""
+    try:
+        report = generate_report(load_all())
+        return ReportResponse(**report)
+    except Exception as e:
+        logger.exception("report 失败")
+        raise HTTPException(status_code=500, detail=str(e))

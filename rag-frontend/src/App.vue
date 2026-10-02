@@ -17,11 +17,25 @@
             <div class="bubble">
               {{ msg.content }}<span v-if="msg.streaming" class="cursor">▍</span>
             </div>
+
+            <!-- 引用区 -->
             <div v-if="msg.references && msg.references.length" class="references">
               <div class="ref-title">📚 引用来源：</div>
               <div v-for="(ref, i) in msg.references" :key="i" class="ref-item">
                 [{{ i + 1 }}] {{ ref.source }}（相似度 {{ ref.score.toFixed(4) }}）
               </div>
+            </div>
+
+            <!-- 🆕 反馈按钮：独立于引用区，回答完成后才显示 -->
+            <div
+              v-if="msg.role === 'assistant' && !msg.streaming && !msg.feedbackDone"
+              class="feedback-buttons"
+            >
+              <el-button size="small" @click="sendFeedback(msg, true)">👍 满意</el-button>
+              <el-button size="small" @click="sendFeedback(msg, false)">👎 不满意</el-button>
+            </div>
+            <div v-if="msg.feedbackMsg" class="feedback-msg">
+              {{ msg.feedbackMsg }}
             </div>
           </div>
 
@@ -96,6 +110,30 @@
           </div>
         </div>
       </el-tab-pane>
+
+      <!-- ========== 🆕 Tab 3：反馈报告 ========== -->
+      <el-tab-pane label="📊 反馈报告" name="report">
+        <div class="report-area">
+          <el-alert
+            title="Badcase 归因 + 知识缺口报告：查看用户反馈中暴露的问题，指导知识补充。"
+            type="info"
+            :closable="false"
+            style="margin-bottom: 20px;"
+          />
+          <el-button
+            type="primary"
+            @click="refreshReport"
+            :loading="reportLoading"
+            size="large"
+          >
+            刷新报告
+          </el-button>
+          <pre v-if="reportText" class="report-pre">{{ reportText }}</pre>
+          <div v-else class="empty-tip" style="padding: 30px 0;">
+            点击"刷新报告"查看 Badcase 归因与知识缺口
+          </div>
+        </div>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -121,7 +159,17 @@ const submit = async () => {
   loading.value = true
   isStreamingActive.value = false
 
-  const assistantMsg = { role: 'assistant', content: '', references: [], streaming: true }
+  // 🆕 助手消息对象加反馈相关字段
+  const assistantMsg = {
+    role: 'assistant',
+    content: '',
+    references: [],
+    streaming: true,
+    msgId: '',           // 🆕 从 start 事件填充
+    sessionId: '',       // 🆕 从 start 事件填充
+    feedbackDone: false, // 🆕 是否已反馈
+    feedbackMsg: '',     // 🆕 反馈状态文本
+  }
   messages.value.push(assistantMsg)
   const msgIndex = messages.value.length - 1
 
@@ -154,11 +202,17 @@ const submit = async () => {
 
         try {
           const parsed = JSON.parse(data)
-          if (parsed.type === 'content') {
+          if (parsed.type === 'start') {
+            // 🆕 保存 msg_id 和 session_id（反馈的前提）
+            messages.value[msgIndex].msgId = parsed.msg_id
+            messages.value[msgIndex].sessionId = parsed.session_id || ''
+          } else if (parsed.type === 'content') {
             if (!isStreamingActive.value) isStreamingActive.value = true
             messages.value[msgIndex].content += parsed.text
           } else if (parsed.type === 'references') {
             messages.value[msgIndex].references = parsed.references || []
+          } else if (parsed.type === 'done') {
+            messages.value[msgIndex].streaming = false
           } else if (parsed.type === 'error') {
             messages.value[msgIndex].content = '[ERROR] ' + parsed.message
           }
@@ -179,6 +233,77 @@ const submit = async () => {
 const clear = () => {
   messages.value = []
   question.value = ''
+}
+
+// 🆕 ========== 反馈 ==========
+const sendFeedback = async (msg, satisfied) => {
+  if (!msg.msgId) {
+    msg.feedbackMsg = '⚠️ 缺少 msg_id，无法反馈'
+    return
+  }
+  try {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: msg.sessionId || 'vue3_session',
+        msg_id: msg.msgId,
+        question: '',
+        answer: msg.content,
+        satisfied: satisfied,
+        rerank_scores: (msg.references || []).map(r => r.score),
+        retrieved_snippets: (msg.references || []).map(r => r.source || ''),
+      })
+    })
+    const data = await res.json()
+    msg.feedbackMsg = data.message
+    msg.feedbackDone = true
+    ElMessage.success(data.message)
+  } catch (e) {
+    msg.feedbackMsg = '反馈失败: ' + e.message
+    ElMessage.error('反馈失败: ' + e.message)
+  }
+}
+
+// 🆕 ========== 反馈报告 ==========
+const reportText = ref('')
+const reportLoading = ref(false)
+
+const refreshReport = async () => {
+  reportLoading.value = true
+  try {
+    const res = await fetch('/api/feedback/report')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    reportText.value = formatReport(data)
+  } catch (e) {
+    reportText.value = 'ERROR: ' + e.message
+  } finally {
+    reportLoading.value = false
+  }
+}
+
+const formatReport = (data) => {
+  const lines = [
+    `总反馈数: ${data.total_feedbacks}`,
+    `Badcase 数: ${data.total_badcases}`,
+    '',
+    '按归因分类:',
+  ]
+  for (const [cause, count] of Object.entries(data.by_root_cause || {})) {
+    lines.push(`  - ${cause}: ${count} 条`)
+  }
+  lines.push('')
+  lines.push('建议动作:')
+  for (const a of data.suggested_actions || []) {
+    lines.push(`  → ${a}`)
+  }
+  lines.push('')
+  lines.push('知识缺口 TOP 10:')
+  for (const gap of (data.knowledge_gaps || []).slice(0, 10)) {
+    lines.push(`  - 「${gap.question}」(score=${(gap.top_score || 0).toFixed(3)})`)
+  }
+  return lines.join('\n')
 }
 
 // ========== 上传相关 ==========
@@ -225,11 +350,8 @@ const submitUpload = async () => {
     }
 
     ElMessage.success('上传成功，知识库已更新！')
-
-    // 清空文件列表
     fileList.value = []
 
-    // 提示切换到问答 Tab
     setTimeout(() => {
       activeTab.value = 'chat'
     }, 1500)
@@ -301,7 +423,35 @@ const submitUpload = async () => {
 .loading-tip { color: #409EFF; padding: 10px; text-align: center; }
 .input-area { display: flex; gap: 10px; }
 
+/* 🆕 反馈按钮 */
+.feedback-buttons {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  max-width: 75%;
+}
+.feedback-msg {
+  margin-top: 4px;
+  color: #67c23a;
+  font-size: 13px;
+}
+
 /* 上传区 */
 .upload-area { padding: 20px 0; }
 .upload-result { margin-top: 20px; }
+
+/* 🆕 报告区 */
+.report-area { padding: 10px 0; }
+.report-pre {
+  margin-top: 16px;
+  background: #f5f7fa;
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  max-height: 600px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-family: Consolas, Monaco, monospace;
+}
 </style>

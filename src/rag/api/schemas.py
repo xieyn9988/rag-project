@@ -27,6 +27,7 @@ class Reference(BaseModel):
 
 
 class QueryResponse(BaseModel):
+    msg_id: str          # 🆕 新增
     question: str
     answer: str
     retrieved: List[RetrievedDoc] = Field(default_factory=list, description="完整检索结果")
@@ -57,3 +58,28 @@ class HealthResponse(BaseModel):
     doc_count: int
     model_llm: str
     model_embed: str
+
+
+# ============ Feedback 相关 ============
+
+class FeedbackRequest(BaseModel):
+    session_id: str
+    msg_id: str
+    question: str
+    answer: str
+    satisfied: bool
+    rerank_scores: List[float] = []
+    retrieved_snippets: List[str] = []
+
+
+class FeedbackResponse(BaseModel):
+    ok: bool
+    message: str
+
+
+class ReportResponse(BaseModel):
+    total_feedbacks: int
+    total_badcases: int
+    by_root_cause: dict
+    suggested_actions: List[str]
+    knowledge_gaps: List[dict]
