@@ -1,6 +1,6 @@
 # 电商客服 RAG 智能问答系统
 
-> 基于 **LangChain + ChromaDB + BGE + DeepSeek** 的电商客服 RAG 系统。**提供 Vue3 全栈前端 + FastAPI 接口 + Streaming 流式输出 + 上传资料（现传现用）**，Docker 一键部署。
+> 基于 **LangChain + ChromaDB + BGE + DeepSeek** 的电商客服 RAG 系统。**Vue3 全栈前端 + FastAPI + Streaming 流式输出 + 上传资料（现传现用）+ 业务闭环（反馈归因）**，Docker 一键部署。
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal)
@@ -27,10 +27,12 @@
 
 ## 📊 项目亮点
 
-- **⚡ Streaming 流式输出**：SSE 协议逐 token 推送，用户看到打字机效果，无需等待全文生成
-- **📤 上传资料（现传现用）**：管理员上传新政策，系统自动 ingest，客服立即能基于新文档问答
-- **🎯 Reranker 精排 + 引用追溯**：向量召回 + CrossEncoder 精排，每个回答附带原文片段和相似度
-- **🖥 全栈实现**：Vue3 前端 + FastAPI 后端 + CLI，Docker 一键部署
+- **⚡ Streaming 流式输出**：SSE 协议逐 token 推送，用户看到打字机效果
+- **📤 上传资料（现传现用）**：上传新政策 → 系统自动 ingest → 客服立即能问
+- **🎯 Reranker 精排 + 引用追溯**：向量召回 + CrossEncoder 精排，附原文片段
+- **🔄 业务闭环**：反馈采集 → Badcase 归因 → 知识缺口报告 → 知识迭代
+- **🔌 平台适配层**：抽象 `PlatformAdapter`，支持 Webhook 接入京麦/千牛/抖店
+- **🖥 全栈实现**：Vue3 + FastAPI + CLI，Docker 一键部署
 
 ---
 
@@ -40,8 +42,8 @@
 
 ![chat demo](./docs/screenshots/chat_demo.gif)
 
-*   回答**逐字出现**（打字机效果）
-*   附带 **📚 引用来源**（含相似度）
+- 回答**逐字出现**（打字机效果）
+- 附带 **📚 引用来源**（含相似度）
 
 ### 上传资料界面
 
@@ -56,6 +58,10 @@
 > **引用来源**：
 > - [1] HFP客服知识库.txt（相似度 0.9573）
 > - [2] HFP客服知识库.txt（相似度 0.8142）
+
+### 业务闭环演示（Badcase 归因）
+
+![closed loop](./docs/screenshots/closed_loop_demo.png)
 
 ---
 
@@ -87,11 +93,106 @@
 | 公司出了新政策 | 写文档 → 培训客服 → 客服背下来 | **上传文档 → 系统立即生效** |
 | 客服流动 | 新员工培训 3 天才能上岗 | **第一天就能用系统辅助** |
 
+### 🔄 业务闭环（自进化系统）
+
+系统不是单向的"问答管道"，而是带反馈的**自进化系统**。
+
+**闭环流程**：
+
+```
+用户提问 → RAG 回答 → 反馈采集 → Badcase 归因 → 知识更新 → 效果验证
+   ↑                                                              │
+   └────────────────────── 迭代循环 ──────────────────────────────┘
+```
+
+**五个环节**：
+
+| 环节 | 实现 | 代码位置 |
+|------|------|---------|
+| **感知** | 显式反馈（👍/👎）+ 隐式信号（低置信度自动触发） | `src/rag/feedback/collector.py` |
+| **诊断** | 规则引擎归因：知识缺失 / 检索问题 / Prompt 问题 | `src/rag/feedback/triage.py` |
+| **治疗** | 自动生成知识缺口报告，指导文档补充 | `src/rag/feedback/knowledge_gap.py` |
+| **度量** | 聚合指标：满意率、平均检索分、Badcase 分布 | `src/rag/feedback/metrics.py` |
+| **迭代** | 知识运营 → 补充文档 → 重建索引 → 验证 | `scripts/ingest.py` |
+
+**归因规则**：
+
+| 检索分数 | 归因 | 建议动作 |
+|---------|------|---------|
+| 无检索结果 | `KNOWLEDGE` | 知识运营：补充文档 |
+| top_score < 0.5 | `KNOWLEDGE` | 知识覆盖不足，补充文档 |
+| 0.5 ≤ top_score < 0.7 | `RETRIEVAL` | 工程优化：调 chunk_size / top_k / Reranker |
+| top_score ≥ 0.7 但用户不满意 | `PROMPT` | Prompt 优化 / 换模型 |
+
+**演示**：
+
+```bash
+python scripts/demo_closed_loop.py
+```
+
+**输出示例**：
+
+```
+知识缺口报告
+============================================================
+总反馈数: 6
+Badcase 数: 4
+
+按归因分类:
+  - knowledge: 3 条       → 知识运营：补充/修订文档
+  - retrieval: 1 条       → 工程优化：调 chunk_size / top_k / Reranker
+
+知识缺口 TOP 5:
+  - 「你们家发货要多久？」(top_score=0.123)
+  - 「能开发票吗？」(top_score=0.089)
+
+业务指标
+============================================================
+satisfied_rate: 0.333
+avg_top_score: 0.456
+```
+
+### 🔌 平台适配层（对接真实电商平台）
+
+**设计目标**：不替换京麦/千牛，而是作为它们的"AI 增强外挂"，通过官方 OpenAPI 合规接入。
+
+**架构**：
+
+```
+┌──────────────────────────────────────┐
+│   电商平台（京麦 / 千牛 / 抖店）       │
+└──────────────┬───────────────────────┘
+               │ ① Webhook 推送买家消息
+               ▼
+┌──────────────────────────────────────┐
+│   PlatformAdapter（抽象）             │
+│   ├── MockAdapter       ✅ 已实现     │
+│   ├── JingmaiAdapter    📋 待接入     │
+│   └── QianniuAdapter    📋 待接入     │
+└──────────────┬───────────────────────┘
+               │ 统一消息模型
+               ▼
+┌──────────────────────────────────────┐
+│   RAGChain（检索 + 重排 + 生成）       │
+└──────────────┬───────────────────────┘
+               │ ② 调用 sendMsg 回复
+               ▼
+┌──────────────────────────────────────┐
+│   Feedback Loop（归因 + 知识缺口）     │
+└──────────────────────────────────────┘
+```
+
+**当前状态**：
+
+- ✅ Mock 适配器完整可用，可本地验证链路
+- 📋 京麦/千牛适配器骨架就绪，拿到 ISV 资质后可快速填充
+- 🔒 合规设计：签名验证、幂等去重、Webhook 5 秒响应约束
+
 ### ⚡ Streaming 流式输出
 
 - **后端**：`StreamingResponse` 逐 token 推送
 - **前端**：`fetch` + `ReadableStream` 逐块解析
-- **效果**：首字立即展示，像 ChatGPT 一样
+- **效果**：首字立即展示
 
 ### 💬 三种使用入口
 
@@ -100,14 +201,14 @@
 | **Vue3 Web 界面** | ✅ 推荐 | 客服日常使用 |
 | **FastAPI REST 接口** | ✅ 推荐 | 集成到现有客服系统 |
 | **CLI 命令行** | ✅ 稳定 | 开发和脚本调用 |
-| **Gradio 界面** | ⚠️ 可选 | 本地测试 |
 
 ### 🐳 工程化
 
-*   **Docker 一键部署**：`docker compose up -d`
-*   **一键启动脚本**：`start_rag.bat`（Windows）
-*   **配置外置**：`.env` + Pydantic Settings
-*   **日志轮转**：RotatingFileHandler
+- **Docker 一键部署**：`docker compose up -d`
+- **一键启动脚本**：`start_rag.bat`（Windows）
+- **配置外置**：`.env` + Pydantic Settings
+- **日志轮转**：RotatingFileHandler
+- **全链路自检**：`python scripts/check_all.py`
 
 ---
 
@@ -122,9 +223,7 @@
                   ▼
 ┌─────────────────────────────────────────────────────┐
 │         Nginx / Vite Proxy                          │
-│   /api/* 反代到 FastAPI                              │
 └─────────────────┬───────────────────────────────────┘
-                  │
                   ▼
 ┌─────────────────────────────────────────────────────┐
 │         FastAPI 后端 (:8000)                        │
@@ -135,7 +234,11 @@
 ├──────────────┬──────────────┬───────────────────────┤
 │  Embedding   │  VectorStore │  LLM                  │
 │  (BGE-zh)    │  (ChromaDB)  │  (DeepSeek)           │
-└──────────────┴──────────────┴───────────────────────┘
+├──────────────┴──────────────┴───────────────────────┤
+│  🔄 Feedback Loop  (反馈采集 → 归因 → 知识缺口)      │
+├─────────────────────────────────────────────────────┤
+│  🔌 Platform Adapter  (Mock / 京麦 / 千牛)          │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -161,17 +264,16 @@
 
 ### 前置条件
 
-*   Python 3.10+
-*   Node.js 18+
-*   （可选）Docker Desktop
+- Python 3.10+
+- Node.js 18+
+- （可选）Docker Desktop
 
 ### 方式一：一键启动脚本（Windows）
 
-双击 `start_rag.bat`，脚本会自动：
-
+双击 `start_rag.bat`，自动：
 1. 启动 FastAPI 后端（:8000）
 2. 启动 Vue3 前端（:5173）
-3. 轮询 `/health` 等待后端就绪
+3. 轮询 `/health` 等后端就绪
 4. 自动打开浏览器
 
 ### 方式二：手动启动
@@ -181,29 +283,28 @@
 git clone https://github.com/xieyn9988/rag-project.git
 cd rag-project
 
-# 2. 创建虚拟环境
+# 2. 虚拟环境
 conda create -n chroma_env python=3.10 -y
 conda activate chroma_env
 
-# 3. 安装 Python 依赖
+# 3. 依赖
 pip install -e ".[dev]"
 
-# 4. 配置 API Key
+# 4. 配置
 cp .env.example .env
-# 编辑 .env，填入你的 DeepSeek API Key
+# 编辑 .env，填入 DeepSeek API Key
 
 # 5. 摄入数据
 python scripts/ingest.py --rebuild
 
-# 6. 启动后端（CMD 1）
+# 6. 后端（CMD 1）
 python apps/fastapi_app.py
 
-# 7. 启动前端（CMD 2）
-cd rag-frontend
-npm install
-npm run dev
+# 7. 前端（CMD 2）
+cd rag-frontend && npm install && npm run dev
 
-# 8. 浏览器访问 http://localhost:5173
+# 8. 浏览器
+# http://localhost:5173
 ```
 
 ### 方式三：Docker 一键部署
@@ -222,10 +323,10 @@ docker compose up -d
 
 ### 客服日常使用（Vue3 界面）
 
-浏览器打开 `http://localhost:5173`：
+浏览器 `http://localhost:5173`：
 
-*   **💬 问答 Tab**：输入问题，回答逐字出现，附带引用来源
-*   **📤 上传资料 Tab**：拖拽 TXT/MD/PDF，点击上传，系统自动重建索引
+- **💬 问答 Tab**：输入问题，回答逐字出现，附带引用来源
+- **📤 上传资料 Tab**：拖拽 TXT/MD/PDF，点击上传，系统自动重建索引
 
 ### 集成到现有客服系统（API）
 
@@ -250,7 +351,7 @@ curl -X POST http://localhost:8000/query \
 }
 ```
 
-**流式接口**（SSE 协议）：
+**流式接口（SSE）**：
 
 ```bash
 curl -X POST http://localhost:8000/query/stream \
@@ -286,57 +387,51 @@ curl -X POST http://localhost:8000/ingest/upload \
 | `RAG_RERANK_MODEL` | `BAAI/bge-reranker-base` | 重排序模型 |
 | `RAG_CHUNK_SIZE` | `500` | 文本块大小 |
 | `RAG_TOP_K` | `2` | 检索文档数 |
-| `HF_ENDPOINT` | `https://hf-mirror.com` | HuggingFace 国内镜像 |
+| `HF_ENDPOINT` | `https://hf-mirror.com` | HuggingFace 镜像 |
 
 ---
 
 ## 📝 设计要点
 
-### 1. 分层架构
-
-`interface / service / chain / infra` 四层分离，方便替换组件。
-
-### 2. 抽象接口
-
-`Embedder / VectorStore / LLM` 三个 ABC，换供应商不改业务代码。
-
-### 3. Reranker 精排（为什么这么做）
-
-纯向量检索只考虑语义相似度，容易漏掉真正相关的文档。CrossEncoder 会同时看 query 和 doc，精排能力更强。所以用 `top_k × 3` 召回候选，精排后取 `top_k`。
-
-### 4. 单例管理
-
-`RAGChain` 全局复用，避免每次请求重载 BGE 模型。
-
-### 5. 上传资料后重置单例（为什么这么做）
-
-ingest 后 ChromaDB 的 collection 句柄会失效，所以必须重置 RAGChain，否则后续查询会出错。
-
-### 6. 国内网络优化
-
-`HF_ENDPOINT=hf-mirror.com` 切换 HuggingFace 到国内镜像，避免模型下载超时。
+1. **分层架构**：`interface / service / chain / infra` 四层分离
+2. **抽象接口**：`Embedder / VectorStore / LLM` 三个 ABC，换供应商不改业务代码
+3. **Reranker 精排**：`top_k × 3` 召回 → CrossEncoder 精排 → `top_k`
+4. **单例管理**：`RAGChain` 全局复用，避免每次请求重载 BGE 模型
+5. **上传后重置单例**：ingest 后 collection 句柄失效，必须重置 RAGChain
+6. **反馈闭环**：RAG 质量 70% 取决于知识质量，闭环让"用户不满意"变成"知识补充"输入
+7. **归因规则**：200 行规则，准确性高于 AI、成本为零、可解释
+8. **平台适配层**：抽象 `PlatformAdapter`，业务代码不耦合平台 API
+9. **国内网络优化**：`HF_ENDPOINT=hf-mirror.com` 避免模型下载超时
 
 ---
 
 ## 🎯 技术边界
 
-**不是所有 PDF 都能解析。**
+**不是所有 PDF 都能解析**：
 
-*   ✅ 结构化单页 PDF
-*   ✅ 电子档 PDF（可选中文字）
-*   ⚠️ 扫描件 PDF → 需 OCR，暂不支持
-*   ⚠️ 多页切分式宽表 PDF → 暂不支持
+- ✅ 结构化单页 PDF
+- ✅ 电子档 PDF（可选中文字）
+- ⚠️ 扫描件 PDF → 需 OCR，暂不支持
+- ⚠️ 多页切分式宽表 PDF → 暂不支持
 
 **建议**：PDF 请先另存为 Excel/CSV/TXT 后上传。
+
+**平台对接边界**：
+
+- ✅ Mock 适配器本地完整可用
+- ⚠️ 京麦/千牛真实接入需要 ISV 资质
+- 📋 适配器骨架已就位，拿到资质后可快速填充
 
 ---
 
 ## 🔮 未来规划
 
-*   [ ] **多轮对话记忆**：基于 LLM 的历史压缩
-*   [ ] **多租户隔离**：不同企业独立知识库
-*   [ ] **Voice RAG**：集成 Whisper，支持语音提问
-*   [ ] **Answer 质量评估**：自动打分 + 反馈闭环
+- [ ] **真实平台接入**：填实京麦/千牛适配器
+- [ ] **多轮对话记忆**：基于 LLM 的历史压缩
+- [ ] **多租户隔离**：不同企业独立知识库
+- [ ] **Voice RAG**：集成 Whisper
+- [ ] **可观测性**：Prometheus + Grafana
+- [ ] **灰度 A/B**：优化方案灰度发布
 
 ---
 
@@ -346,7 +441,7 @@ MIT
 
 ## 🙏 致谢
 
-*   [LangChain](https://github.com/langchain-ai/langchain)
-*   [ChromaDB](https://github.com/chroma-core/chroma)
-*   [BAAI BGE](https://github.com/FlagOpen/FlagEmbedding)
-*   [DeepSeek](https://www.deepseek.com/)
+- [LangChain](https://github.com/langchain-ai/langchain)
+- [ChromaDB](https://github.com/chroma-core/chroma)
+- [BAAI BGE](https://github.com/FlagOpen/FlagEmbedding)
+- [DeepSeek](https://www.deepseek.com/)
