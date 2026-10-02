@@ -375,6 +375,12 @@ curl -X POST http://localhost:8000/ingest/upload \
   -F "files=@data/text/新政策.md"
 ```
 
+### 前端反馈界面
+
+![反馈报告](./docs/screenshots/feedback_report.png)
+![满意按钮](./docs/screenshots/feedback_buttons.png)
+
+
 ---
 
 ## ⚙️ 配置
