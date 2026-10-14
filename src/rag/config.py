@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     chunk_overlap: int = 50
 
     # 检索
-    top_k: int = 3
+    top_k: int = 2
 
     # 存储
     chroma_dir: Path = Path("storage/chroma_db")

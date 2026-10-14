@@ -18,9 +18,11 @@ logger = get_logger(__name__)
 @dataclass
 class RAGResponse:
     """非流式响应"""
+
     question: str
     answer: str
     retrieved: List[Tuple[Document, float]]
+    usage: dict | None = None   # ← 新增
 
 
 @dataclass
@@ -30,13 +32,14 @@ class StreamChunk:
     - type='content' 时，text 是回答片段
     - type='references' 时，references 是引用列表
     """
-    type: str                            # 'content' | 'references'
-    text: str = ""                       # 内容片段
-    references: List[dict] | None = None # 引用列表
+
+    type: str  # 'content' | 'references'
+    text: str = ""  # 内容片段
+    references: List[dict] | None = None  # 引用列表
 
 
 class RAGChain:
-    def __init__(self):
+    def __init__(self, use_reranker: bool = True):
         self._embedder = build_embedder()
         self._store = ChromaStore(
             str(settings.resolve(settings.chroma_dir)),
@@ -45,6 +48,37 @@ class RAGChain:
         self._llm = build_llm()
         self._prompt = self._load_prompt()
         self._reranker: BgeReranker | None = None
+        self._use_reranker = use_reranker
+        self._store_count = self._store.count()  # ← 新增：记录当前 chunk 数
+
+    def _ensure_store_fresh(self):
+        """检查 collection 是否变了（count 对比），变了就重建 store。
+        注意：这个函数处理"count 变化"（比如 ingest 加了文档），
+        不处理"collection 不存在"—— 那是 _retrieve 里 try/except 兜底的。
+        """
+        try:
+            current_count = self._store.count()
+        except Exception as e:
+            # store 异常（collection 不存在、磁盘问题等）
+            logger.warning("Store 异常 (%s)，重建 ChromaStore", e)            
+            self._store = ChromaStore(
+                str(settings.resolve(settings.chroma_dir)),
+                settings.collection_name,
+            )
+            self._store_count = self._store.count()
+            return
+
+        if current_count != self._store_count:
+            logger.info(
+                "Collection 变更 (%d → %d)，重建 store",
+                self._store_count,
+                current_count,
+            )
+            self._store = ChromaStore(
+                str(settings.resolve(settings.chroma_dir)),
+                settings.collection_name,
+            )
+            self._store_count = current_count
 
     @staticmethod
     def _load_prompt() -> dict:
@@ -56,17 +90,34 @@ class RAGChain:
 
     def _retrieve(self, question: str, top_k: int) -> List[Tuple[Document, float]]:
         """检索 + 重排序，返回 top_k 条 (doc, score)"""
+        self._ensure_store_fresh()  # ← 每次检索前检查
         q_emb = self._embedder.embed_query(question)
-        candidates = self._store.search(q_emb, top_k=top_k * 3)
+
+        try:
+            candidates = self._store.search(q_emb, top_k=top_k * 3)
+        except Exception as e:
+            # collection 不存在或损坏 → 重建后重试一次
+            logger.warning("检索失败 (%s)，重建 store 后重试", e)
+            self._store = ChromaStore(
+                str(settings.resolve(settings.chroma_dir)),
+                settings.collection_name,
+            )
+            self._store_count = self._store.count()
+            candidates = self._store.search(q_emb, top_k=top_k * 3)
+
+        if not self._use_reranker:
+            return candidates[:top_k]
 
         if self._reranker is None:
             self._reranker = BgeReranker()
         return self._reranker.rerank(question, candidates, top_k=top_k)
 
-    def _build_messages(self, question: str, hits: List[Tuple[Document, float]]) -> List[dict]:
+    def _build_messages(
+        self, question: str, hits: List[Tuple[Document, float]]
+    ) -> List[dict]:
         """把检索结果 + 问题组装成 LLM messages"""
         context = "\n\n".join(
-            f"[文档 {i+1} | 相似度 {score:.4f}]\n{doc.page_content}"
+            f"[文档 {i + 1} | 相似度 {score:.4f}]\n{doc.page_content}"
             for i, (doc, score) in enumerate(hits)
         )
         user_msg = self._prompt["user_template"].format(
@@ -81,6 +132,7 @@ class RAGChain:
     def _format_references(hits: List[Tuple[Document, float]]) -> List[dict]:
         """把 hits 转成引用列表（含文件名 + 相似度）"""
         import os
+
         return [
             {
                 "source": os.path.basename(doc.metadata.get("source", "unknown")),
@@ -96,11 +148,13 @@ class RAGChain:
         """非流式查询（原方法保持不变）"""
         top_k = top_k or settings.top_k
         hits = self._retrieve(question, top_k)
-        messages = self._build_messages(question, hits)
-        answer = self._llm.chat(messages)
-        return RAGResponse(question=question, answer=answer, retrieved=hits)
+        messages = self._build_messages(question, hits)        
+        answer, usage = self._llm.chat_with_usage(messages)   # ← 新方法
+        return RAGResponse(question=question, answer=answer, retrieved=hits, usage=usage)
 
-    def stream_query(self, question: str, top_k: int | None = None) -> Iterator[StreamChunk]:
+    def stream_query(
+        self, question: str, top_k: int | None = None
+    ) -> Iterator[StreamChunk]:
         """
         流式查询：先检索，再逐 token yield 回答，最后 yield 引用列表。
 

@@ -1,0 +1,30 @@
+{"id": 1, "question": "退货流程是什么？", "relevant_keywords": ["联系客服", "填写退货信息", "寄回商品"], "category": "退货", "difficulty": "easy"}
+{"id": 2, "question": "没拆塑封能退货吗？", "relevant_keywords": ["没拆塑封", "可以退货"], "category": "退货", "difficulty": "easy"}
+{"id": 3, "question": "什么时候发货？", "relevant_keywords": ["16:30", "当天发货"], "category": "物流", "difficulty": "easy"}
+{"id": 4, "question": "16:30之后下单什么时候发货？", "relevant_keywords": ["16:30之后", "次日发货"], "category": "物流", "difficulty": "medium"}
+{"id": 5, "question": "快递一般多久能到？", "relevant_keywords": ["中通", "2-5天"], "category": "物流", "difficulty": "easy"}
+{"id": 6, "question": "双11活动什么时候？", "relevant_keywords": ["双11", "10月底", "11.11"], "category": "活动", "difficulty": "easy"}
+{"id": 7, "question": "618活动什么时候？", "relevant_keywords": ["618", "5月底", "6.1"], "category": "活动", "difficulty": "easy"}
+{"id": 8, "question": "商品破损了运费谁承担？", "relevant_keywords": ["品质问题", "破损", "商家承担"], "category": "售后", "difficulty": "medium"}
+{"id": 9, "question": "买错了退货运费谁出？", "relevant_keywords": ["非品质问题", "不喜欢", "买错", "承担运费"], "category": "售后", "difficulty": "medium"}
+{"id": 10, "question": "新手怎么建立耐受？", "relevant_keywords": ["建立耐受", "第1-2周", "2-3天1次"], "category": "使用", "difficulty": "medium"}
+{"id": 11, "question": "买回来不想要了能退吗？", "relevant_keywords": ["不满意", "可以退货"], "category": "退货", "difficulty": "medium"}
+{"id": 12, "question": "我下单后多久能收到？", "relevant_keywords": ["中通", "2-5天", "16:30", "当天发货", "次日发货"], "category": "物流", "difficulty": "medium"}
+{"id": 13, "question": "护肤品过敏了运费谁出？", "relevant_keywords": ["品质问题", "过敏", "商家承担"], "category": "售后", "difficulty": "hard"}
+{"id": 14, "question": "双11买的东西物流慢能退货吗？", "relevant_keywords": ["双11", "退货"], "category": "综合", "difficulty": "hard"}
+{"id": 15, "question": "用了过敏但拆了塑封能退吗？", "relevant_keywords": ["过敏", "品质问题", "商家承担", "拆塑封", "退货条件"], "category": "综合", "difficulty": "hard"}
+{"id": 16, "question": "能开发票吗？", "relevant_keywords": ["发票"], "category": "边界", "difficulty": "easy"}
+{"id": 17, "question": "支持货到付款吗？", "relevant_keywords": ["货到付款"], "category": "边界", "difficulty": "easy"}
+{"id": 18, "question": "满减活动什么时候结束？", "relevant_keywords": ["满减", "活动"], "category": "活动", "difficulty": "easy"}
+{"id": 19, "question": "我买的是假货怎么办？", "relevant_keywords": ["假货", "品质问题", "商家承担"], "category": "售后", "difficulty": "medium"}
+{"id": 20, "question": "下单后能改地址吗？", "relevant_keywords": ["地址"], "category": "边界", "difficulty": "easy"}
+{"id": 21, "question": "用了过敏怎么办？", "relevant_keywords": ["过敏", "品质问题", "商家承担"], "category": "售后", "difficulty": "medium"}
+{"id": 22, "question": "每天都要用吗？", "relevant_keywords": ["使用频率", "建议使用", "每晚", "第1-2周", "第3-4周", "1个月后"], "category": "使用", "difficulty": "medium"}
+{"id": 23, "question": "第3-4周怎么用？", "relevant_keywords": ["第3-4周", "隔天1次"], "category": "使用", "difficulty": "medium"}
+{"id": 24, "question": "1个月后怎么用？", "relevant_keywords": ["1个月后", "每晚"], "category": "使用", "difficulty": "medium"}
+{"id": 25, "question": "大促期间发货会延迟吗？", "relevant_keywords": ["大促", "延迟", "1-2天"], "category": "物流", "difficulty": "medium"}
+{"id": 26, "question": "88会员节是什么时候？", "relevant_keywords": ["88会员节", "8月中下旬"], "category": "活动", "difficulty": "easy"}
+{"id": 27, "question": "订单能取消吗？", "relevant_keywords": ["取消"], "category": "边界", "difficulty": "easy"}
+{"id": 28, "question": "可以修改订单吗？", "relevant_keywords": ["修改"], "category": "边界", "difficulty": "easy"}
+{"id": 29, "question": "怎么联系人工客服？", "relevant_keywords": ["客服", "联系"], "category": "其他", "difficulty": "easy"}
+{"id": 30, "question": "商品支持7天无理由退货吗？", "relevant_keywords": ["7天无理由", "退货"], "category": "退货", "difficulty": "easy"}

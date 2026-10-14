@@ -12,6 +12,9 @@ cache/
 *.chroma
 .huggingface/
 
+# 排除测试用的备份文件
+data/text_backup/
+
 # 保留 data/ 目录结构，但排除用户上传的临时文件
 # data/text/ 和 data/pdfs/ 下的示例文档要保留！
 data/**/*.tmp
@@ -63,6 +66,9 @@ rag-frontend/node_modules/
 .coverage
 htmlcov/
 .tox/
+
+# benchmark 输出，不提交（README 里有摘要）
+benchmarks/results/*.json
 
 # ==================== 其他 ====================
 *.pid

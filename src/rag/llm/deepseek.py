@@ -30,7 +30,48 @@ class DeepSeekLLM(BaseLLM):
             temperature=kwargs.get("temperature", settings.llm_temperature),
             max_tokens=kwargs.get("max_tokens", settings.llm_max_tokens),
         )
+        # 记录 usage（用于成本统计）
+        if getattr(resp, "usage", None):
+            logger.info(
+                "LLM usage | prompt=%d, completion=%d, total=%d",
+                resp.usage.prompt_tokens,
+                resp.usage.completion_tokens,
+                resp.usage.total_tokens,
+            )
         return resp.choices[0].message.content or ""
+
+    def chat_with_usage(
+        self, messages: List[Dict[str, str]], **kwargs
+    ) -> tuple[str, dict | None]:
+        """非流式调用，返回 (answer, usage)。
+
+        usage 格式：
+            {"prompt_tokens": int, "completion_tokens": int, "total_tokens": int}
+        如果 DeepSeek 不返回 usage，返回 (answer, None)。
+        """
+        resp = self._client.chat.completions.create(
+            model=kwargs.get("model", self._model),
+            messages=messages,
+            temperature=kwargs.get("temperature", settings.llm_temperature),
+            max_tokens=kwargs.get("max_tokens", settings.llm_max_tokens),
+        )
+
+        answer = resp.choices[0].message.content or ""
+
+        usage = None
+        if getattr(resp, "usage", None):
+            usage = {
+                "prompt_tokens": resp.usage.prompt_tokens,
+                "completion_tokens": resp.usage.completion_tokens,
+                "total_tokens": resp.usage.total_tokens,
+            }
+            logger.info(
+                "LLM usage | prompt=%d, completion=%d, total=%d",
+                usage["prompt_tokens"],
+                usage["completion_tokens"],
+                usage["total_tokens"],
+            )
+        return answer, usage
 
     def stream_chat(self, messages: List[Dict[str, str]], **kwargs) -> Iterator[str]:
         """流式调用：逐 token 返回内容片段（Generator）
@@ -46,10 +87,24 @@ class DeepSeekLLM(BaseLLM):
             max_tokens=kwargs.get("max_tokens", settings.llm_max_tokens),
             stream=True,
         )
+        usage = None
         for chunk in resp:
+            # 收集 usage（通常只有最后一个 chunk 带 usage）
+            if getattr(chunk, "usage", None):
+                usage = chunk.usage
+
             if not chunk.choices:
                 continue
             delta = chunk.choices[0].delta
             content = getattr(delta, "content", None)
             if content:
                 yield content
+
+        # 流式结束后记录 usage
+        if usage:
+            logger.info(
+                "LLM usage (stream) | prompt=%d, completion=%d, total=%d",
+                usage.prompt_tokens,
+                usage.completion_tokens,
+                usage.total_tokens,
+            )

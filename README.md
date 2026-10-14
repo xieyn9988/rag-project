@@ -2,7 +2,7 @@
 
 > 基于 **LangChain + ChromaDB + BGE + DeepSeek** 的电商客服 RAG 系统。**Vue3 全栈前端 + FastAPI + Streaming 流式输出 + 上传资料（现传现用）+ 业务闭环（反馈归因）**，Docker 一键部署。
 
-![Python](https://img.shields.io/badge/Python-3.12-blue)
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal)
 ![Vue3](https://img.shields.io/badge/Vue3-3.x-green)
 ![LangChain](https://img.shields.io/badge/LangChain-1.x-orange)
@@ -27,12 +27,172 @@
 
 ## 📊 项目亮点
 
+> **性能数据**：非流式 P50 4.844s / 流式 TTFT P50 4.196s
+> **检索质量**：30 条评测集，Hit@1 = 0.967
+> **优化案例**：warm-up 预热 reranker，首次请求 14.77s → 3.5s
+
 - **⚡ Streaming 流式输出**：SSE 协议逐 token 推送，用户看到打字机效果
 - **📤 上传资料（现传现用）**：上传新政策 → 系统自动 ingest → 客服立即能问
 - **🎯 Reranker 精排 + 引用追溯**：向量召回 + CrossEncoder 精排，附原文片段
 - **🔄 业务闭环**：反馈采集 → Badcase 归因 → 知识缺口报告 → 知识迭代
 - **🔌 平台适配层**：抽象 `PlatformAdapter`，支持 Webhook 接入京麦/千牛/抖店
 - **🖥 全栈实现**：Vue3 + FastAPI + CLI，Docker 一键部署
+
+---
+
+## 📊 性能与评测
+
+### 测试环境
+
+| 项 | 值 |
+|---|---|
+| CPU | Intel i7-8700，主频 3.20GHz，6 核 12 线程 |
+| 内存 | 16GB |
+| GPU | NVIDIA GTX 1050 Ti，显存 4GB（**测试时未启用**，BGE 跑 CPU） |
+| OS | Windows 10 |
+| Python | 3.10.x |
+| 测试时间 | 2026-10-14 |
+| 网络 | localhost（避免公网波动） |
+
+### 延迟（90 次实测，top_k=2）
+
+| 接口 | P50 | P95 | P99 / Max |
+|---|---|---|---|
+| 非流式 `/query` | 4.844s | 5.249s | 5.463s |
+| 流式 `/query/stream` TTFT | **4.196s** | 4.511s | 4.835s |
+| 流式 `/query/stream` Total | 4.822s | 5.414s | 5.770s |
+
+**测量方法**：客户端 `requests` + `time.perf_counter()`，`N_RUNS=30`，3 个问题共 90 次。报 P50/P95/P99。
+
+### 参数调优：top_k 消融实验
+
+| top_k | 非流式 P50 | 流式 TTFT P50 | 边际成本 |
+|---|---|---|---|
+| 1 | 4.532s | 3.564s | - |
+| **2（默认）** | **4.844s** | **4.196s** | +0.63s |
+| 3 | 5.849s | 5.483s | +1.29s |
+
+**结论**：top_k 从 1→2 涨 0.63s，从 2→3 涨 1.29s。**边际成本在 2 之后翻倍**，所以默认选 2。
+
+### 延迟拆解
+
+| 阶段 | 耗时 | 说明 |
+|---|---|---|
+| 检索（embedding + 向量） | ~50ms | 本地 |
+| Reranker（CrossEncoder） | ~200ms | 本地 |
+| 组装 messages | ~1ms | 本地 |
+| **DeepSeek 首 token** | **~3.3s** | **瓶颈** |
+
+**瓶颈在 DeepSeek 首 token 延迟**，非本地代码。
+
+### 已知优化
+
+- ✅ **warm-up 预热 reranker**：首次请求（含模型加载） **14.77s → 3.5s**（-76%）
+- ✅ **真流式实现**：`stream=True` + 逐 chunk yield，非"全生成再推"
+- ✅ **`X-Accel-Buffering: no`**：防 Nginx 缓冲，保证 SSE 真流式
+
+### 可观测性说明
+
+DeepSeek 侧偶发排队会导致长尾波动——同一配置下，P99 在 5.5s（正常轮）到 14s（抖动轮）之间。生产环境需加超时 + 重试 + 降级模板。
+
+### 检索准确率（30 条人工标注评测集）
+
+**评测集**：30 条，覆盖退货/物流/活动/售后/使用/综合/边界 7 个场景。每条人工标注"答案必须出现的关键词"。
+
+#### 知识库补全前后对比
+
+| 阶段 | 知识库条数 | 无 Reranker Hit@1 | 有 Reranker Hit@1 |
+|---|---|---|---|
+| 补前 | 10 条 | 0.700 | 0.767 |
+| **补后** | **23 条** | **0.933** | **0.967** |
+| 提升 | - | **+23.3pp** | **+20pp** |
+
+**关键发现**：
+- **知识库补全是最大杠杆**（+20pp）——比 Reranker 贡献大 6 倍
+- **Reranker 在知识库补全后仍有 +3.3pp**——不是冗余，是"排序修正"
+- **Hit@3/Hit@5 = 1.0**——所有题的正确答案都能召回，只是排序不同
+
+#### Reranker A/B 对比（知识库 23 条）
+
+| 指标 | 无 Reranker | 有 Reranker | 提升 |
+|---|---|---|---|
+| Hit@1 | 0.933 | **0.967** | +3.3pp |
+| Hit@3 | 1.000 | 1.000 | - |
+| Hit@5 | 1.000 | 1.000 | - |
+| MRR | 0.967 | **0.983** | +1.7pp |
+
+**结论**：Reranker 提升的是 **Hit@1 和 MRR**——它把正确的 chunk 从第 2/3 名提到第 1 名。**客服场景里，Hit@1 比 Hit@5 重要**——因为 LLM 只读 top_2。
+
+#### 评测集迭代记录
+
+| 版本 | 条数 | Hit@1 | 迭代原因 | 关键发现 |
+|---|---|---|---|---|
+| v1 | 10 | 1.0 | 题太简单（关键词直接匹配） | 测不出真实水平 |
+| v2 | 30 | 0.900 | 扩到 30 条，加难 case | 3 条错 case，其中 2 条是关键词未覆盖 |
+| **v3** | **30** | **0.967** | **修正关键词覆盖** | **只剩 1 条真 RAG 边界** |
+
+#### 唯一错 case 分析
+
+**问题**：`我下单后多久能收到？`
+
+![Reranker 失败 case](./docs/screenshots/reranker_failure_case.png)
+
+**Reranker 后的 top 3**：
+
+| 排名 | chunk | 相关 | 说明 |
+|---|---|---|---|
+| **[1]** | **"防伪" chunk** | **❌** | 含"现在下单包邮"，与"下单"字面重叠 |
+| [2] | "发货时间" chunk | ✅ | 16:30 前/后，当天/次日发货 |
+| [3] | "物流时效" chunk | ✅ | 中通 2-5 天 |
+
+**根因**：Reranker 过度关注"下单"字面重叠，忽略了"多久"这个核心意图。
+
+**这是 Reranker 的"字面偏好"** —— 它能纠正语义相似，但对"字面重叠强、语义弱"的 case 会误判。
+
+**改进路径**：
+
+1. **Query Rewriting**：把"多久"改写为"多长时间/发货时间" —— 让 Reranker 更容易匹配
+2. **Chunk 去噪**：删掉 CTA 类内容（"现在下单包邮"）—— 减少噪声
+3. **Reranker 升级**：从 base 换到 large —— 语义理解更强
+
+### 成本
+
+**数据来源**：25 次真实调用，从 `resp.usage` 读 token 数。
+
+| 项 | 值 |
+|---|---|
+| 平均 input tokens | 596.8 |
+| 平均 output tokens | 71.6 |
+| **单次成本** | **¥0.00074** |
+| **日均 500 次** | **¥0.37** |
+| **月成本（22 天）** | **¥8.14** |
+
+**对比人力**：
+- 客服月薪 ¥6000，日均 500 问 → **单次人力成本 ¥0.55**
+- AI 单次成本 ¥0.00074 → **降低 99.86%**
+
+**说明**：
+- DeepSeek 定价：¥1/百万 input tokens，¥2/百万 output tokens（2026-10）
+- `input_tokens` 随检索文档长度变化（578-676），`output_tokens` 随回答长度变化（36-120）
+
+---
+
+### 可复现
+
+```bash
+# 延迟测试
+python scripts/benchmark_latency.py
+# 结果保存到 benchmarks/results/latency.json
+
+# 检索准确率测试
+python scripts/benchmark_retrieval.py
+python scripts/benchmark_retrieval.py --no-reranker
+# 结果保存到 benchmarks/results/retrieval_*.json
+
+# 成本
+python scripts/benchmark_cost.py
+# 结果保存到 benchmarks/results/cost.json
+```
 
 ---
 
@@ -53,11 +213,11 @@
 
 > **提问**："我买的洗发水用了过敏，能退吗？"
 >
-> **回答**：可以的。根据《售后服务政策 v2.3》，化妆品类商品如使用后出现过敏反应，可在签收后 15 天内申请退货，需提供医院过敏证明...
+> **回答**：可以的。根据《HFP客服知识库》，化妆品类商品如使用后出现过敏反应，可在签收后 15 天内申请退货，需提供医院过敏证明...
 >
 > **引用来源**：
-> - [1] HFP客服知识库.txt（相似度 0.9573）
-> - [2] HFP客服知识库.txt（相似度 0.8142）
+> - [1] HFP客服知识库.txt（相似度 0.7579）
+> - [2] HFP客服知识库.txt（相似度 0.4956）
 
 ### 业务闭环演示（Badcase 归因）
 
@@ -67,7 +227,6 @@
 
 ![满意按钮](./docs/screenshots/feedback_buttons.png)
 ![反馈报告](./docs/screenshots/feedback_report.png)
-
 
 ---
 
@@ -323,6 +482,13 @@ docker compose up -d
 # API 文档：http://localhost:8000/docs
 ```
 
+**注意**：
+- **首次 build**：约 10-15 分钟（装 torch + 依赖）
+- **首次启动**：容器会 warm-up（加载 BGE + Reranker），约 10-15 秒
+- **健康检查**：`curl http://localhost:8000/health` —— 返回 `{"status": "ok", "doc_count": 23}`
+- **数据持久化**：`storage/chroma_db` 挂载到宿主机，容器重启不丢索引
+- **服务名**：`rag-api`（不是 `api`）
+
 ---
 
 ## 📖 使用说明
@@ -336,24 +502,31 @@ docker compose up -d
 
 ### 集成到现有客服系统（API）
 
+> 以下 `curl` 示例不传 `top_k`，用服务端默认值（`config.py` 的 `top_k=2`）。
+
 **非流式接口**：
 
 ```bash
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
-  -d '{"question": "洗发水过敏能退吗？", "top_k": 2}'
+  -d '{"question": "洗发水过敏能退吗？"}'
 ```
 
 **响应**：
 
 ```json
 {
+  "msg_id": "335b4b55-...",
   "question": "洗发水过敏能退吗？",
-  "answer": "可以的。根据《售后服务政策》...",
-  "references": [
-    {"source": "HFP客服知识库.txt", "score": 0.9573}
-  ],
-  "elapsed_ms": 2340
+  "answer": "可以的。根据《HFP客服知识库》...",
+  "retrieved": [
+    {
+      "content": "...",
+      "source": "HFP客服知识库.txt",
+      "page": null,
+      "score": 0.7579
+    }
+  ]
 }
 ```
 
@@ -362,15 +535,19 @@ curl -X POST http://localhost:8000/query \
 ```bash
 curl -X POST http://localhost:8000/query/stream \
   -H "Content-Type: application/json" \
-  -d '{"question": "退货", "top_k": 2}'
+  -d '{"question": "退货"}'
 ```
 
 **响应流**：
 
 ```
-data: {"type": "content", "text": "亲~"}
-data: {"type": "content", "text": "关于退货..."}
-data: {"type": "references", "references": [{"source": "HFP客服知识库.txt", "score": 0.9573}]}
+data: {"type": "start", "msg_id": "0e2f45b6-...", "session_id": "session:0e2f45b6"}
+data: {"type": "content", "text": "亲"}
+data: {"type": "content", "text": "~"}
+data: {"type": "content", "text": "关于"}
+...
+data: {"type": "references", "references": [{"source": "HFP客服知识库.txt", "page": null, "score": 0.7579}]}
+data: {"type": "done", "elapsed_ms": 2060}
 data: [DONE]
 ```
 
@@ -385,15 +562,27 @@ curl -X POST http://localhost:8000/ingest/upload \
 
 ## ⚙️ 配置
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `RAG_LLM_API_KEY` | - | DeepSeek API Key |
-| `RAG_LLM_MODEL` | `deepseek-chat` | 模型名 |
-| `RAG_EMBED_MODEL` | `BAAI/bge-small-zh-v1.5` | Embedding 模型 |
-| `RAG_RERANK_MODEL` | `BAAI/bge-reranker-base` | 重排序模型 |
-| `RAG_CHUNK_SIZE` | `500` | 文本块大小 |
-| `RAG_TOP_K` | `2` | 检索文档数 |
-| `HF_ENDPOINT` | `https://hf-mirror.com` | HuggingFace 镜像 |
+> **默认值以 `src/rag/config.py` 为准。** 下表只列"可配置项"和"作用"，具体默认值请查阅代码。
+
+| 变量 | 说明 | 建议 |
+|------|------|------|
+| `RAG_LLM_API_KEY` | **必填**，DeepSeek API Key | 从 [DeepSeek 平台](https://platform.deepseek.com/) 获取 |
+| `RAG_LLM_BASE_URL` | DeepSeek API 地址 | 默认官方地址，一般不改 |
+| `RAG_LLM_MODEL` | 模型名 | 默认 `deepseek-chat` |
+| `RAG_EMBED_MODEL` | Embedding 模型 | 默认 `BAAI/bge-small-zh-v1.5` |
+| `RAG_CHUNK_SIZE` | 文本块大小 | 默认 500，改小召回更细，改大上下文更完整 |
+| `RAG_CHUNK_OVERLAP` | 块间重叠 | 默认 50，防止语义被切断 |
+| `RAG_TOP_K` | 检索文档数 | 默认 2，改大准确率↑但延迟↑ |
+| `HF_ENDPOINT` | HuggingFace 镜像 | 国内网络建议 `https://hf-mirror.com` |
+
+**覆盖方式**：在 `.env` 里写 `RAG_XXX=值`，会覆盖 `config.py` 的默认值。
+
+**查看当前生效值**：
+
+```bash
+curl http://localhost:8000/health
+# 返回 model_llm / model_embed / doc_count 等关键配置
+```
 
 ---
 
@@ -456,7 +645,6 @@ curl -X POST http://localhost:8000/ingest/upload \
 1. **系统只处理字面问题，不处理真实意图**——用户真实意图可能是"吐槽这句话很假"，但系统把它当"元问题"来回答。**这不是 bug，是 RAG 的边界**。
 2. **"答得不准" 不等于 "答错"**——系统**严格遵守"基于文档回答"的约束**，宁可不答、不猜，也不编造。
 
-
 **未来改进方向**：
 
 - **短期**：Prompt 加"意图识别"约束，遇到元问题先澄清用户真实意图
@@ -470,6 +658,8 @@ curl -X POST http://localhost:8000/ingest/upload \
 - [ ] **真实平台接入**：填实京麦/千牛适配器
 - [ ] **多轮对话记忆**：基于 LLM 的历史压缩
 - [ ] **多租户隔离**：不同企业独立知识库
+- [ ] **Query Rewriting**：把口语化 query 改写为"检索友好"的形式
+- [ ] **Chunk 去噪**：去掉 CTA（Call To Action）类噪声
 - [ ] **Voice RAG**：集成 Whisper
 - [ ] **可观测性**：Prometheus + Grafana
 - [ ] **灰度 A/B**：优化方案灰度发布
