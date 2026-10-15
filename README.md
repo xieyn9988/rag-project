@@ -1,4 +1,16 @@
 # 电商客服 RAG 智能问答系统
+> 基于 **LangChain + ChromaDB + BGE + DeepSeek** 的电商客服 RAG 系统。
+>
+> 📌 **版本说明**
+> - `v1.0`（main分支 / tag v1.0）：业务原型版本；Vue3+FastAPI全栈、SSE流式输出、文档上传现传现用、反馈归因闭环、ChromaDB向量库，调用公有LLM API；完整延迟&检索评测。
+> - `v2.0(WIP)`（feature/v2‑enterprise‑enhance分支）：企业级检索增强版本【开发中】
+>   - 新增：BM25关键词检索 + RRF倒数排序融合、HyDE、QueryRewrite查询改写
+>   - 新增：Milvus向量库适配器（基于VectorStore抽象基类）
+>   - 新增：RAGAS自动化评测脚本，评估幻觉、答案忠实度、相关性
+>   - 目标：修复v1中`我下单后多久能收到？`字面匹配Badcase，提升召回鲁棒性
+
+> Vue3 全栈前端 + FastAPI + Streaming 流式输出 + 上传资料（现传现用）+ 业务闭环（反馈归因），Docker 一键部署。
+
 
 > 基于 **LangChain + ChromaDB + BGE + DeepSeek** 的电商客服 RAG 系统。**Vue3 全栈前端 + FastAPI + Streaming 流式输出 + 上传资料（现传现用）+ 业务闭环（反馈归因）**，Docker 一键部署。
 
@@ -37,6 +49,13 @@
 - **🔄 业务闭环**：反馈采集 → Badcase 归因 → 知识缺口报告 → 知识迭代
 - **🔌 平台适配层**：抽象 `PlatformAdapter`，支持 Webhook 接入京麦/千牛/抖店
 - **🖥 全栈实现**：Vue3 + FastAPI + CLI，Docker 一键部署
+
+> 🚧 v2.0(WIP) 检索增强（feature/v2‑enterprise‑enhance分支）
+- BM25关键词检索 + RRF倒数排序融合，混合检索增强召回
+- HyDE虚拟文档生成、QueryRewrite口语查询改写，解决字面重叠干扰Badcase
+- Milvus向量库适配器，兼容生产级向量数据库
+- RAGAS自动化评测，量化忠实度、答案相关性、幻觉指标
+
 
 ---
 
@@ -658,11 +677,33 @@ curl http://localhost:8000/health
 - [ ] **真实平台接入**：填实京麦/千牛适配器
 - [ ] **多轮对话记忆**：基于 LLM 的历史压缩
 - [ ] **多租户隔离**：不同企业独立知识库
-- [ ] **Query Rewriting**：把口语化 query 改写为"检索友好"的形式
 - [ ] **Chunk 去噪**：去掉 CTA（Call To Action）类噪声
 - [ ] **Voice RAG**：集成 Whisper
 - [ ] **可观测性**：Prometheus + Grafana
 - [ ] **灰度 A/B**：优化方案灰度发布
+
+---
+
+## 🧪 v2.0 实验记录【WIP】
+> 实验脚本位于 `scripts/benchmark_v2*.py`，实验报告输出到 `docs/v2/`
+
+### 实验1：混合检索(BM25+向量) vs 纯向量检索
+|方案|Hit@1|MRR|备注|
+|---|---|---|---|
+|v1 纯向量+reranker|0.967|0.983|原始基线|
+|BM25+向量 RRF融合 + reranker|待填充|待填充|修复“下单后多久收到”badcase|
+
+### 实验2：HyDE / QueryRewrite 消融
+|方案|Hit@1|MRR|备注|
+|---|---|---|---|
+|原始query|待填充|待填充||
+|QueryRewrite改写|待填充|待填充||
+|HyDE虚拟文档|待填充|待填充||
+
+> Badcase修复记录：docs/v2/badcase_fix_report.md
+> RAGAS评测结果：docs/v2/ragas_report.md
+> Milvus压测记录：docs/v2/milvus_bench.md
+
 
 ---
 
