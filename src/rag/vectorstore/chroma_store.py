@@ -72,3 +72,15 @@ class ChromaStore(BaseVectorStore):
             name=name, metadata={"hnsw:space": "cosine"}
         )
         logger.warning("集合 %s 已重置", name)
+
+    def get_all_documents(self) -> list:
+        """获取所有文档（用于 BM25 索引）。"""
+        from langchain_core.documents import Document
+        result = self._collection.get()
+        docs = []
+        for i, content in enumerate(result["documents"]):
+            docs.append(Document(
+                page_content=content,
+                metadata=result["metadatas"][i] if result.get("metadatas") else {},
+            ))
+        return docs

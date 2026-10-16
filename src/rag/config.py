@@ -44,5 +44,13 @@ class Settings(BaseSettings):
         """把相对路径解析为项目根下的绝对路径"""
         return p if p.is_absolute() else (self.project_root / p)
 
+    # ── v2 检索增强 ──
+    retrieval_mode: str = "dense"        # dense | hybrid
+    enable_hyde: bool = False
+    context_dedupe: bool = True
+    context_reorder: bool = True
+    context_max_chars: int = 1600
+
+    query_rewrite_enabled: bool = False   # 默认 False，通过 .env 开启
 
 settings = Settings()

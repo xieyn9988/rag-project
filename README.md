@@ -1,25 +1,18 @@
 # 电商客服 RAG 智能问答系统
-> 基于 **LangChain + ChromaDB + BGE + DeepSeek** 的电商客服 RAG 系统。
+
+> 基于 **LangChain + ChromaDB + BGE + DeepSeek** 的电商客服 RAG 系统（v1，全栈已跑通）。
 >
 > 📌 **版本说明**
-> - `v1.0`（main分支 / tag v1.0）：业务原型版本；Vue3+FastAPI全栈、SSE流式输出、文档上传现传现用、反馈归因闭环、ChromaDB向量库，调用公有LLM API；完整延迟&检索评测。
-> - `v2.0(WIP)`（feature/v2‑enterprise‑enhance分支）：企业级检索增强版本【开发中】
->   - 新增：BM25关键词检索 + RRF倒数排序融合、HyDE、QueryRewrite查询改写
->   - 新增：Milvus向量库适配器（基于VectorStore抽象基类）
->   - 新增：RAGAS自动化评测脚本，评估幻觉、答案忠实度、相关性
->   - 目标：修复v1中`我下单后多久能收到？`字面匹配Badcase，提升召回鲁棒性
+> - `v1.0`（main 分支 / tag v1.0）：业务原型版本；Vue3+FastAPI 全栈、SSE 流式输出、文档上传现传现用、反馈归因闭环、Reranker 精排、ChromaDB 向量库、公有 LLM API；完整延迟 & 检索评测。
+> - `v2.0(WIP)`（feature/v2-enterprise-enhance 分支）：**「检索增强 + 领域微调」双引擎升级**【开发中】
+>   - **M2 领域微调（新增核心）**：Qwen2.5 + LoRA/QLoRA/全参三路对比，治理灾难性遗忘，vLLM 部署替换公有 API
+>   - **M1 检索增强**：BM25+向量 RRF 混合检索、HyDE、QueryRewrite——修复 `我下单后多久能收到？` 字面匹配 Badcase
+>   - **M3 评估升级**：RAGAS 四指标自动化 + 微调双轨评测（量化「领域提升 / 通用保持」）
+>   - **M4 向量库**：Milvus 适配器（基于 VectorStore 抽象基类）+ HNSW 调优
+>
+> **v1**：Vue3 全栈前端 + FastAPI + Streaming 流式输出 + 上传资料（现传现用）+ 业务闭环（反馈归因），Docker 一键部署。
 
-> Vue3 全栈前端 + FastAPI + Streaming 流式输出 + 上传资料（现传现用）+ 业务闭环（反馈归因），Docker 一键部署。
-
-
-> 基于 **LangChain + ChromaDB + BGE + DeepSeek** 的电商客服 RAG 系统。**Vue3 全栈前端 + FastAPI + Streaming 流式输出 + 上传资料（现传现用）+ 业务闭环（反馈归因）**，Docker 一键部署。
-
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal)
-![Vue3](https://img.shields.io/badge/Vue3-3.x-green)
-![LangChain](https://img.shields.io/badge/LangChain-1.x-orange)
-![ChromaDB](https://img.shields.io/badge/ChromaDB-1.x-yellow)
-![Docker](https://img.shields.io/badge/Docker-ready-blue)
+![Python](https://img.shields.io/badge/Python-3.10+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal) ![Vue3](https://img.shields.io/badge/Vue3-3.x-green) ![LangChain](https://img.shields.io/badge/LangChain-1.x-orange) ![ChromaDB](https://img.shields.io/badge/ChromaDB-1.x-yellow) ![Milvus](https://img.shields.io/badge/Milvus-v2_adapter-lightblue) ![LLaMA--Factory](https://img.shields.io/badge/LLaMA--Factory-Qwen2.5_LoRA-red) ![Docker](https://img.shields.io/badge/Docker-ready-blue)
 
 ---
 
@@ -50,12 +43,11 @@
 - **🔌 平台适配层**：抽象 `PlatformAdapter`，支持 Webhook 接入京麦/千牛/抖店
 - **🖥 全栈实现**：Vue3 + FastAPI + CLI，Docker 一键部署
 
-> 🚧 v2.0(WIP) 检索增强（feature/v2‑enterprise‑enhance分支）
-- BM25关键词检索 + RRF倒数排序融合，混合检索增强召回
-- HyDE虚拟文档生成、QueryRewrite口语查询改写，解决字面重叠干扰Badcase
-- Milvus向量库适配器，兼容生产级向量数据库
-- RAGAS自动化评测，量化忠实度、答案相关性、幻觉指标
-
+> 🚧 **v2.0(WIP) 双引擎升级**【feature/v2-enterprise-enhance 分支】
+> - **领域微调（新增核心）**：Qwen2.5-1.5B + LoRA/QLoRA/全参三路对比；通用数据 replay 治灾难性遗忘；merge → vLLM 部署替换公有 API
+> - **检索增强**：BM25 + 向量 RRF 混合检索、HyDE、QueryRewrite——修复「下单后多久收到」字面重叠 Badcase
+> - **评估升级**：RAGAS 四指标自动化（忠实度/相关性/幻觉）+ 微调双轨评测，量化「+X% 领域 / -Y% 通用」
+> - **向量库**：Milvus 适配器 + HNSW 参数调优，对齐生产级选型
 
 ---
 
@@ -120,13 +112,14 @@ DeepSeek 侧偶发排队会导致长尾波动——同一配置下，P99 在 5.5
 
 #### 知识库补全前后对比
 
-| 阶段 | 知识库条数 | 无 Reranker Hit@1 | 有 Reranker Hit@1 |
-|---|---|---|---|
-| 补前 | 10 条 | 0.700 | 0.767 |
-| **补后** | **23 条** | **0.933** | **0.967** |
-| 提升 | - | **+23.3pp** | **+20pp** |
+| 阶段 | 知识库条数 | 无 Reranker Hit@1 | 有 Reranker Hit@1 | 数据来源 |
+|---|---|---|---|---|
+| 补前 | 10 条 | 0.700 | 0.767 | ⚠️ 手写，JSON 未归档 |
+| **补后** | **23 条** | **0.933** | **0.967** | ✅ `archive/2026-10-14_23chunks.json` |
+| 提升 | - | **+23.3pp** | **+20pp** | - |
 
 **关键发现**：
+
 - **知识库补全是最大杠杆**（+20pp）——比 Reranker 贡献大 6 倍
 - **Reranker 在知识库补全后仍有 +3.3pp**——不是冗余，是"排序修正"
 - **Hit@3/Hit@5 = 1.0**——所有题的正确答案都能召回，只是排序不同
@@ -187,18 +180,18 @@ DeepSeek 侧偶发排队会导致长尾波动——同一配置下，P99 在 5.5
 | **月成本（22 天）** | **¥8.14** |
 
 **对比人力**：
+
 - 客服月薪 ¥6000，日均 500 问 → **单次人力成本 ¥0.55**
 - AI 单次成本 ¥0.00074 → **降低 99.86%**
 
 **说明**：
+
 - DeepSeek 定价：¥1/百万 input tokens，¥2/百万 output tokens（2026-10）
 - `input_tokens` 随检索文档长度变化（578-676），`output_tokens` 随回答长度变化（36-120）
 
----
-
 ### 可复现
 
-```bash
+~~~bash
 # 延迟测试
 python scripts/benchmark_latency.py
 # 结果保存到 benchmarks/results/latency.json
@@ -211,7 +204,62 @@ python scripts/benchmark_retrieval.py --no-reranker
 # 成本
 python scripts/benchmark_cost.py
 # 结果保存到 benchmarks/results/cost.json
-```
+~~~
+
+---
+
+## 🧪 v2.0：检索增强 + 领域微调双引擎【WIP】
+
+> **定位**：从"RAG 应用"升级为"RAG + LoRA 微调"双引擎客服系统——**RAG 补时效知识，LoRA 内化话术与业务规则，评估闭环驱动持续迭代**。
+>
+> ✅ **进度**：M1 混合检索已合入 · 🔄 M2 数据构建中 · 📋 M3/M4 待启动（请按实际更新）
+>
+> 实验脚本位于 `scripts/benchmark_v2*.py` 与 `scripts/finetune/`，实验报告输出到 `docs/v2/`。
+
+### M1 检索增强（修复 v1 已知 Badcase）
+
+- **BM25 关键词检索 + RRF 倒数排序融合**：关键词与语义双路召回互补，修复「我下单后多久能收到」字面重叠误召回
+- **HyDE 虚拟文档 / QueryRewrite 口语化改写**：消融实验验证对 Hit@1 的贡献
+- **上下文注入策略**：片段去重（相似度 >0.9）、按相关性降序摆放应对 lost-in-the-middle、超长截断策略——可配置 + 消融
+- **Prompt 模板工程**：`prompts/` 目录模板版本化；意图分类前置层（factual / meta / complaint / chitchat），不同意图走不同 Prompt——兑现 v1「元问题案例」的改进方向
+
+### M2 领域微调（LLaMA-Factory + Qwen2.5-1.5B）
+
+- **数据准备**：v1 的 23 条知识库 + 反馈闭环 Badcase → DeepSeek 批量生成客服问答对（每条知识 3~5 种问法）→ 人工抽检修订 → **500~800 条 SFT 数据**（Alpaca 格式）；清洗规则：去重（答案 hash）、长度分布检查、格式统一，10% 划验证集，**混入 15% 通用指令数据防遗忘**
+- **训练**：LoRA / QLoRA / 全参三路对比；消融 `lora_rank`（8/16/32）、`learning_rate`（5e-5/1e-4/2e-4）、`epochs`（2/3/5），观察过拟合拐点
+- **治理**：早停（验证 loss 连续 2 eval 上升即停）治过拟合；通用数据 replay + 低秩约束 + 冻结主干治灾难性遗忘
+- **部署**：`merge_and_unload` 合并 → vLLM OpenAI 兼容 API；另导出 GGUF Q4 量化版（Ollama）
+- **闭环**：微调模型经 `LLM` 抽象基类接入 RAGChain，与 DeepSeek 一键切换，产出 **质量 / 延迟 / 成本** 三维对比
+
+### M3 评估体系（RAGAS + 双轨评测）
+
+- **RAGAS 自动化**：Faithfulness / Answer Relevancy / Context Precision / Context Recall，跑 30 条评测集，与人工标注 Hit@1 交叉验证
+- **微调双轨评测**：
+  - **领域集**：自建 100 条客服测试题（含 held-out 知识点）——测能力提升
+  - **通用集**：CEval / MMLU 轻量子集 50 条——量化遗忘程度
+  - 产出：**「领域 +X% / 通用 -Y%」** 的量化结论
+
+### M4 向量库升级
+
+- **Milvus 适配器**：基于 `VectorStore` 抽象基类实现，业务代码零改动
+- **HNSW 调优**：`M` / `efConstruction` / `ef` 参数消融，与 ChromaDB 做召回/延迟压测对比
+
+### 实验记录
+
+| 实验 | 指标 | v1 基线 | v2 结果 | 备注 |
+|---|---|---|---|---|
+| 混合检索（BM25+向量 RRF）vs 纯向量 | Hit@1 / MRR | 0.967 / 0.983 | 待填 | 目标：修复「下单后多久收到」Badcase |
+| QueryRewrite 消融 | Hit@1 | 0.967 | 待填 | |
+| HyDE 消融 | Hit@1 | 0.967 | 待填 | |
+| 上下文注入策略消融 | Hit@1 / 忠实度 | — | 待填 | 去重 / 排序摆放 / 截断 |
+| RAGAS 四指标 | Faithfulness 等 | — | 待填 | 与人工 Hit@1 交叉验证 |
+| LoRA 消融（rank 8/16/32） | 领域准确率 / val loss | — | 待填 | |
+| LoRA 消融（lr / epochs） | 同上 | — | 待填 | 观察过拟合拐点 |
+| LoRA vs QLoRA vs 全参 | 领域准确率 / 训练成本 | — | 待填 | |
+| 微调双轨评测 | 领域提升 / 通用保持 | — | 待填 | 量化「+X% 领域 / -Y% 通用」 |
+| Qwen-LoRA 本地 vs DeepSeek API | 准确率 / TTFT / 单次成本 | ¥0.00074/次 | 待填 | 本地推理成本 → ¥0 |
+
+> 📁 详细报告：[Badcase 修复记录](docs/v2/badcase_fix_report.md) · [RAGAS 评测](docs/v2/ragas_report.md) · [Milvus 压测](docs/v2/milvus_bench.md) · [微调实验](docs/v2/finetune_report.md)
 
 ---
 
@@ -245,6 +293,7 @@ python scripts/benchmark_cost.py
 ### 前端反馈界面
 
 ![满意按钮](./docs/screenshots/feedback_buttons.png)
+
 ![反馈报告](./docs/screenshots/feedback_report.png)
 
 ---
@@ -283,11 +332,11 @@ python scripts/benchmark_cost.py
 
 **闭环流程**：
 
-```
+~~~
 用户提问 → RAG 回答 → 反馈采集 → Badcase 归因 → 知识更新 → 效果验证
-   ↑                                                              │
-   └────────────────────── 迭代循环 ──────────────────────────────┘
-```
+    ↑                                                        │
+    └────────────────────── 迭代循环 ──────────────────────────────┘
+~~~
 
 **五个环节**：
 
@@ -310,31 +359,31 @@ python scripts/benchmark_cost.py
 
 **演示**：
 
-```bash
+~~~bash
 python scripts/demo_closed_loop.py
-```
+~~~
 
 **输出示例**：
 
-```
+~~~
 知识缺口报告
 ============================================================
 总反馈数: 6
 Badcase 数: 4
 
 按归因分类:
-  - knowledge: 3 条       → 知识运营：补充/修订文档
-  - retrieval: 1 条       → 工程优化：调 chunk_size / top_k / Reranker
+- knowledge: 3 条 → 知识运营：补充/修订文档
+- retrieval: 1 条 → 工程优化：调 chunk_size / top_k / Reranker
 
 知识缺口 TOP 5:
-  - 「你们家发货要多久？」(top_score=0.123)
-  - 「能开发票吗？」(top_score=0.089)
+- 「你们家发货要多久？」(top_score=0.123)
+- 「能开发票吗？」(top_score=0.089)
 
 业务指标
 ============================================================
 satisfied_rate: 0.333
 avg_top_score: 0.456
-```
+~~~
 
 ### 🔌 平台适配层（对接真实电商平台）
 
@@ -342,29 +391,29 @@ avg_top_score: 0.456
 
 **架构**：
 
-```
+~~~
 ┌──────────────────────────────────────┐
-│   电商平台（京麦 / 千牛 / 抖店）       │
+│        电商平台（京麦 / 千牛 / 抖店）    │
 └──────────────┬───────────────────────┘
                │ ① Webhook 推送买家消息
                ▼
 ┌──────────────────────────────────────┐
-│   PlatformAdapter（抽象）             │
-│   ├── MockAdapter       ✅ 已实现     │
-│   ├── JingmaiAdapter    📋 待接入     │
-│   └── QianniuAdapter    📋 待接入     │
+│       PlatformAdapter（抽象）         │
+│  ├── MockAdapter        ✅ 已实现     │
+│  ├── JingmaiAdapter     📋 待接入     │
+│  └── QianniuAdapter     📋 待接入     │
 └──────────────┬───────────────────────┘
                │ 统一消息模型
                ▼
 ┌──────────────────────────────────────┐
-│   RAGChain（检索 + 重排 + 生成）       │
+│    RAGChain（检索 + 重排 + 生成）      │
 └──────────────┬───────────────────────┘
                │ ② 调用 sendMsg 回复
                ▼
 ┌──────────────────────────────────────┐
-│   Feedback Loop（归因 + 知识缺口）     │
+│  Feedback Loop（归因 + 知识缺口）      │
 └──────────────────────────────────────┘
-```
+~~~
 
 **当前状态**：
 
@@ -398,32 +447,35 @@ avg_top_score: 0.456
 
 ## 🏗️ 系统架构
 
-```
+~~~
 ┌─────────────────────────────────────────────────────┐
-│         用户浏览器 (Vue3)                             │
-│      💬 问答  |  📤 上传资料                          │
+│                  用户浏览器 (Vue3)                   │
+│         💬 问答 | 📤 上传资料                        │
 └─────────────────┬───────────────────────────────────┘
                   │ HTTP / SSE 流式
                   ▼
 ┌─────────────────────────────────────────────────────┐
-│         Nginx / Vite Proxy                          │
+│                Nginx / Vite Proxy                   │
 └─────────────────┬───────────────────────────────────┘
                   ▼
 ┌─────────────────────────────────────────────────────┐
-│         FastAPI 后端 (:8000)                        │
-│  Routes → Service → RAGChain (单例)                │
-│  ├── /query             非流式问答                   │
-│  ├── /query/stream      流式问答（SSE）              │
-│  └── /ingest/upload     上传资料 + 重建索引          │
+│                FastAPI 后端 (:8000)                 │
+│           Routes → Service → RAGChain (单例)        │
+│   ├── /query 非流式问答                             │
+│   ├── /query/stream 流式问答（SSE）                 │
+│   └── /ingest/upload 上传资料 + 重建索引            │
 ├──────────────┬──────────────┬───────────────────────┤
-│  Embedding   │  VectorStore │  LLM                  │
-│  (BGE-zh)    │  (ChromaDB)  │  (DeepSeek)           │
+│ Embedding    │ VectorStore  │ LLM                   │
+│ (BGE-zh)     │ (ChromaDB /  │ (DeepSeek /           │
+│              │  Milvus·v2)  │  Qwen-LoRA 本地·v2)   │
 ├──────────────┴──────────────┴───────────────────────┤
-│  🔄 Feedback Loop  (反馈采集 → 归因 → 知识缺口)      │
+│     🔄 Feedback Loop (反馈采集 → 归因 → 知识缺口)    │
 ├─────────────────────────────────────────────────────┤
-│  🔌 Platform Adapter  (Mock / 京麦 / 千牛)          │
+│       🔌 Platform Adapter (Mock / 京麦 / 千牛)      │
 └─────────────────────────────────────────────────────┘
-```
+~~~
+
+> 🚧 v2：LLM 框支持切换为 **Qwen-LoRA 本地模型**（vLLM，经 `LLM` 抽象基类一键切换）；VectorStore 支持 **Milvus**（BM25+RRF 混合检索）。
 
 ---
 
@@ -434,10 +486,12 @@ avg_top_score: 0.456
 | **前端** | Vue3 + Element Plus + Axios |
 | **后端** | FastAPI + Uvicorn |
 | **RAG 框架** | LangChain |
-| **向量数据库** | ChromaDB |
+| **向量数据库** | ChromaDB（v1）/ Milvus（v2） |
 | **Embedding** | BAAI/bge-small-zh-v1.5 |
 | **Reranker** | BAAI/bge-reranker-base |
 | **LLM** | DeepSeek Chat |
+| **微调** | LLaMA-Factory + Qwen2.5-1.5B-Instruct（LoRA / QLoRA / 全参，v2） |
+| **推理部署** | vLLM（OpenAI 兼容 API）/ Ollama GGUF 量化（v2） |
 | **流式协议** | SSE（Server-Sent Events） |
 | **配置** | Pydantic Settings |
 | **部署** | Docker + Compose |
@@ -455,6 +509,7 @@ avg_top_score: 0.456
 ### 方式一：一键启动脚本（Windows）
 
 双击 `start_rag.bat`，自动：
+
 1. 启动 FastAPI 后端（:8000）
 2. 启动 Vue3 前端（:5173）
 3. 轮询 `/health` 等后端就绪
@@ -462,10 +517,13 @@ avg_top_score: 0.456
 
 ### 方式二：手动启动
 
-```bash
+~~~bash
 # 1. 克隆
 git clone https://github.com/xieyn9988/rag-project.git
 cd rag-project
+
+# 如需体验 v2（检索增强 + 微调）：
+# git checkout feature/v2-enterprise-enhance
 
 # 2. 虚拟环境
 conda create -n chroma_env python=3.10 -y
@@ -489,19 +547,20 @@ cd rag-frontend && npm install && npm run dev
 
 # 8. 浏览器
 # http://localhost:5173
-```
+~~~
 
 ### 方式三：Docker 一键部署
 
-```bash
+~~~bash
 cp .env.example .env
 docker compose up -d
 
 # 前端：http://localhost
 # API 文档：http://localhost:8000/docs
-```
+~~~
 
 **注意**：
+
 - **首次 build**：约 10-15 分钟（装 torch + 依赖）
 - **首次启动**：容器会 warm-up（加载 BGE + Reranker），约 10-15 秒
 - **健康检查**：`curl http://localhost:8000/health` —— 返回 `{"status": "ok", "doc_count": 23}`
@@ -525,15 +584,15 @@ docker compose up -d
 
 **非流式接口**：
 
-```bash
+~~~bash
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{"question": "洗发水过敏能退吗？"}'
-```
+~~~
 
 **响应**：
 
-```json
+~~~json
 {
   "msg_id": "335b4b55-...",
   "question": "洗发水过敏能退吗？",
@@ -547,35 +606,42 @@ curl -X POST http://localhost:8000/query \
     }
   ]
 }
-```
+~~~
 
 **流式接口（SSE）**：
 
-```bash
+~~~bash
 curl -X POST http://localhost:8000/query/stream \
   -H "Content-Type: application/json" \
   -d '{"question": "退货"}'
-```
+~~~
 
 **响应流**：
 
-```
+~~~
 data: {"type": "start", "msg_id": "0e2f45b6-...", "session_id": "session:0e2f45b6"}
+
 data: {"type": "content", "text": "亲"}
+
 data: {"type": "content", "text": "~"}
+
 data: {"type": "content", "text": "关于"}
+
 ...
+
 data: {"type": "references", "references": [{"source": "HFP客服知识库.txt", "page": null, "score": 0.7579}]}
+
 data: {"type": "done", "elapsed_ms": 2060}
+
 data: [DONE]
-```
+~~~
 
 **上传资料接口**：
 
-```bash
+~~~bash
 curl -X POST http://localhost:8000/ingest/upload \
   -F "files=@data/text/新政策.md"
-```
+~~~
 
 ---
 
@@ -593,15 +659,18 @@ curl -X POST http://localhost:8000/ingest/upload \
 | `RAG_CHUNK_OVERLAP` | 块间重叠 | 默认 50，防止语义被切断 |
 | `RAG_TOP_K` | 检索文档数 | 默认 2，改大准确率↑但延迟↑ |
 | `HF_ENDPOINT` | HuggingFace 镜像 | 国内网络建议 `https://hf-mirror.com` |
+| `RAG_LLM_PROVIDER` | LLM 提供方切换（v2） | `deepseek`（默认）/ `qwen_local` |
+| `RAG_LLM_LOCAL_BASE_URL` | 本地微调模型 API 地址（v2） | vLLM 默认 `http://localhost:8001/v1` |
+| `RAG_RETRIEVAL_MODE` | 检索模式（v2） | `dense`（默认）/ `hybrid`（BM25+向量 RRF） |
 
 **覆盖方式**：在 `.env` 里写 `RAG_XXX=值`，会覆盖 `config.py` 的默认值。
 
 **查看当前生效值**：
 
-```bash
+~~~bash
 curl http://localhost:8000/health
 # 返回 model_llm / model_embed / doc_count 等关键配置
-```
+~~~
 
 ---
 
@@ -616,6 +685,8 @@ curl http://localhost:8000/health
 7. **归因规则**：200 行规则，准确性高于 AI、成本为零、可解释
 8. **平台适配层**：抽象 `PlatformAdapter`，业务代码不耦合平台 API
 9. **国内网络优化**：`HF_ENDPOINT=hf-mirror.com` 避免模型下载超时
+10. **混合检索**：BM25（关键词）+ 向量（语义）双路召回，RRF 倒数排序融合，互补误伤（v2）
+11. **微调防遗忘**：通用数据 replay + 低秩约束 + 双轨评测量化遗忘程度，拒绝"偏科生"模型（v2）
 
 ---
 
@@ -670,6 +741,8 @@ curl http://localhost:8000/health
 - **中期**：加意图分类前置层（factual / meta / complaint / chitchat），不同意图走不同 Prompt
 - **长期**：加多轮对话记忆，让 LLM 看到"上一轮自己说了什么"，从而理解"这"指的是什么
 
+> ✅ 短期/中期方案已纳入 **v2 M1**（Prompt 模板版本化 + 意图分类前置层）
+
 ---
 
 ## 🔮 未来规划
@@ -677,33 +750,9 @@ curl http://localhost:8000/health
 - [ ] **真实平台接入**：填实京麦/千牛适配器
 - [ ] **多轮对话记忆**：基于 LLM 的历史压缩
 - [ ] **多租户隔离**：不同企业独立知识库
-- [ ] **Chunk 去噪**：去掉 CTA（Call To Action）类噪声
 - [ ] **Voice RAG**：集成 Whisper
 - [ ] **可观测性**：Prometheus + Grafana
 - [ ] **灰度 A/B**：优化方案灰度发布
-
----
-
-## 🧪 v2.0 实验记录【WIP】
-> 实验脚本位于 `scripts/benchmark_v2*.py`，实验报告输出到 `docs/v2/`
-
-### 实验1：混合检索(BM25+向量) vs 纯向量检索
-|方案|Hit@1|MRR|备注|
-|---|---|---|---|
-|v1 纯向量+reranker|0.967|0.983|原始基线|
-|BM25+向量 RRF融合 + reranker|待填充|待填充|修复“下单后多久收到”badcase|
-
-### 实验2：HyDE / QueryRewrite 消融
-|方案|Hit@1|MRR|备注|
-|---|---|---|---|
-|原始query|待填充|待填充||
-|QueryRewrite改写|待填充|待填充||
-|HyDE虚拟文档|待填充|待填充||
-
-> Badcase修复记录：docs/v2/badcase_fix_report.md
-> RAGAS评测结果：docs/v2/ragas_report.md
-> Milvus压测记录：docs/v2/milvus_bench.md
-
 
 ---
 
@@ -715,5 +764,8 @@ MIT
 
 - [LangChain](https://github.com/langchain-ai/langchain)
 - [ChromaDB](https://github.com/chroma-core/chroma)
+- [Milvus](https://github.com/milvus-io/milvus)
 - [BAAI BGE](https://github.com/FlagOpen/FlagEmbedding)
 - [DeepSeek](https://www.deepseek.com/)
+- [Qwen2.5](https://github.com/QwenLM/Qwen2.5)
+- [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)
