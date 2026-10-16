@@ -72,6 +72,9 @@ benchmarks/results/*.json
 !benchmarks/results/archive/
 !benchmarks/results/archive/*.json
 
+# ============模型权重（不提交 Git，太大）=============
+models/
+
 # ==================== 其他 ====================
 *.pid
 *.seed
