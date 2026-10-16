@@ -1,0 +1,282 @@
+{
+  "summary": {
+    "n": 30,
+    "use_reranker": false,
+    "hit@1": 0.9333333333333333,
+    "hit@3": 1.0,
+    "hit@5": 1.0,
+    "mrr": 0.9666666666666667
+  },
+  "raw": [
+    {
+      "id": 1,
+      "question": "退货流程是什么？",
+      "category": "退货",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 2,
+      "question": "没拆塑封能退货吗？",
+      "category": "退货",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 3,
+      "question": "什么时候发货？",
+      "category": "物流",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 4,
+      "question": "16:30之后下单什么时候发货？",
+      "category": "物流",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 5,
+      "question": "快递一般多久能到？",
+      "category": "物流",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 6,
+      "question": "双11活动什么时候？",
+      "category": "活动",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 7,
+      "question": "618活动什么时候？",
+      "category": "活动",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 8,
+      "question": "商品破损了运费谁承担？",
+      "category": "售后",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 9,
+      "question": "买错了退货运费谁出？",
+      "category": "售后",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 10,
+      "question": "新手怎么建立耐受？",
+      "category": "使用",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 11,
+      "question": "买回来不想要了能退吗？",
+      "category": "退货",
+      "hit@1": 0,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 0.5
+    },
+    {
+      "id": 12,
+      "question": "我下单后多久能收到？",
+      "category": "物流",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 13,
+      "question": "护肤品过敏了运费谁出？",
+      "category": "售后",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 14,
+      "question": "双11买的东西物流慢能退货吗？",
+      "category": "综合",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 15,
+      "question": "用了过敏但拆了塑封能退吗？",
+      "category": "综合",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 16,
+      "question": "能开发票吗？",
+      "category": "边界",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 17,
+      "question": "支持货到付款吗？",
+      "category": "边界",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 18,
+      "question": "满减活动什么时候结束？",
+      "category": "活动",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 19,
+      "question": "我买的是假货怎么办？",
+      "category": "售后",
+      "hit@1": 0,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 0.5
+    },
+    {
+      "id": 20,
+      "question": "下单后能改地址吗？",
+      "category": "边界",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 21,
+      "question": "用了过敏怎么办？",
+      "category": "售后",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 22,
+      "question": "每天都要用吗？",
+      "category": "使用",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 23,
+      "question": "第3-4周怎么用？",
+      "category": "使用",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 24,
+      "question": "1个月后怎么用？",
+      "category": "使用",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 25,
+      "question": "大促期间发货会延迟吗？",
+      "category": "物流",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 26,
+      "question": "88会员节是什么时候？",
+      "category": "活动",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 27,
+      "question": "订单能取消吗？",
+      "category": "边界",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 28,
+      "question": "可以修改订单吗？",
+      "category": "边界",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 29,
+      "question": "怎么联系人工客服？",
+      "category": "其他",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    },
+    {
+      "id": 30,
+      "question": "商品支持7天无理由退货吗？",
+      "category": "退货",
+      "hit@1": 1,
+      "hit@3": 1,
+      "hit@5": 1,
+      "mrr": 1.0
+    }
+  ]
+}

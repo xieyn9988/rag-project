@@ -28,3 +28,23 @@
 {"id": 28, "question": "可以修改订单吗？", "relevant_keywords": ["修改"], "category": "边界", "difficulty": "easy"}
 {"id": 29, "question": "怎么联系人工客服？", "relevant_keywords": ["客服", "联系"], "category": "其他", "difficulty": "easy"}
 {"id": 30, "question": "商品支持7天无理由退货吗？", "relevant_keywords": ["7天无理由", "退货"], "category": "退货", "difficulty": "easy"}
+{"id": 31, "question": "我买的东西怎么还没到？", "relevant_keywords": ["物流", "时效", "中通"], "category": "物流", "difficulty": "medium"}
+{"id": 32, "question": "买回来发现是假的怎么办？", "relevant_keywords": ["假货", "品质问题", "商家承担"], "category": "售后", "difficulty": "medium"}
+{"id": 33, "question": "收到货没几天就坏了", "relevant_keywords": ["破损", "品质问题", "退货"], "category": "售后", "difficulty": "medium"}
+{"id": 34, "question": "我下单了怎么没动静", "relevant_keywords": ["发货", "16:30", "当天发货"], "category": "物流", "difficulty": "medium"}
+{"id": 35, "question": "用着不舒服想退了", "relevant_keywords": ["过敏", "退货", "品质问题"], "category": "售后", "difficulty": "hard"}
+{"id": 36, "question": "钱什么时候退回来", "relevant_keywords": ["退款", "退货流程"], "category": "退货", "difficulty": "medium"}
+{"id": 37, "question": "我想换个别的", "relevant_keywords": ["换货", "退货"], "category": "售后", "difficulty": "medium"}
+{"id": 38, "question": "能不能便宜点", "relevant_keywords": ["活动", "优惠"], "category": "活动", "difficulty": "hard"}
+{"id": 39, "question": "用了脸痒", "relevant_keywords": ["过敏", "品质问题"], "category": "售后", "difficulty": "hard"}
+{"id": 40, "question": "东西有点问题", "relevant_keywords": ["品质问题", "破损"], "category": "售后", "difficulty": "hard"}
+{"id": 41, "question": "用了过敏但拆了塑封能退吗？", "relevant_keywords": ["过敏", "品质问题", "商家承担"], "category": "综合", "difficulty": "hard"}
+{"id": 42, "question": "双11买的东西物流慢能退货吗？", "relevant_keywords": ["双11", "退货"], "category": "综合", "difficulty": "hard"}
+{"id": 43, "question": "买错了想退但已经拆了", "relevant_keywords": ["非品质问题", "退货"], "category": "综合", "difficulty": "hard"}
+{"id": 44, "question": "过敏了退货要运费吗？", "relevant_keywords": ["过敏", "品质问题", "商家承担"], "category": "综合", "difficulty": "hard"}
+{"id": 45, "question": "大促期间买的多久发货？", "relevant_keywords": ["大促", "延迟", "发货"], "category": "综合", "difficulty": "medium"}
+{"id": 46, "question": "支持货到付款吗？", "relevant_keywords": ["货到付款"], "category": "边界", "difficulty": "easy"}
+{"id": 47, "question": "能修改收货地址吗？", "relevant_keywords": ["地址", "修改"], "category": "边界", "difficulty": "easy"}
+{"id": 48, "question": "订单能取消吗？", "relevant_keywords": ["取消"], "category": "边界", "difficulty": "easy"}
+{"id": 49, "question": "支持花呗吗？", "relevant_keywords": ["花呗", "支付"], "category": "边界", "difficulty": "easy"}
+{"id": 50, "question": "能指定快递吗？", "relevant_keywords": ["指定", "快递"], "category": "边界", "difficulty": "easy"}

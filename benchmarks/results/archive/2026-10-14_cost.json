@@ -1,0 +1,147 @@
+{
+  "summary": {
+    "n_samples": 25,
+    "avg_input_tokens": 596.8,
+    "avg_output_tokens": 71.6,
+    "cost_per_query_cny": 0.00074,
+    "cost_daily_cny": 0.37,
+    "cost_monthly_cny": 8.14,
+    "cost_per_query_human_cny": 0.5455,
+    "cost_reduction_pct": 99.86,
+    "assumptions": {
+      "agent_monthly_salary_cny": 6000,
+      "agent_daily_queries": 500,
+      "work_days_per_month": 22,
+      "price_input_per_million_cny": 1.0,
+      "price_output_per_million_cny": 2.0
+    },
+    "data_source": "实测：resp.usage（真实 token）"
+  },
+  "raw": [
+    {
+      "question": "退货流程是什么？",
+      "input_tokens": 469,
+      "output_tokens": 64
+    },
+    {
+      "question": "退货流程是什么？",
+      "input_tokens": 469,
+      "output_tokens": 77
+    },
+    {
+      "question": "退货流程是什么？",
+      "input_tokens": 469,
+      "output_tokens": 84
+    },
+    {
+      "question": "退货流程是什么？",
+      "input_tokens": 469,
+      "output_tokens": 79
+    },
+    {
+      "question": "退货流程是什么？",
+      "input_tokens": 469,
+      "output_tokens": 79
+    },
+    {
+      "question": "什么时候发货？",
+      "input_tokens": 644,
+      "output_tokens": 80
+    },
+    {
+      "question": "什么时候发货？",
+      "input_tokens": 644,
+      "output_tokens": 82
+    },
+    {
+      "question": "什么时候发货？",
+      "input_tokens": 644,
+      "output_tokens": 85
+    },
+    {
+      "question": "什么时候发货？",
+      "input_tokens": 644,
+      "output_tokens": 80
+    },
+    {
+      "question": "什么时候发货？",
+      "input_tokens": 644,
+      "output_tokens": 80
+    },
+    {
+      "question": "快递一般多久能到？",
+      "input_tokens": 647,
+      "output_tokens": 21
+    },
+    {
+      "question": "快递一般多久能到？",
+      "input_tokens": 647,
+      "output_tokens": 34
+    },
+    {
+      "question": "快递一般多久能到？",
+      "input_tokens": 647,
+      "output_tokens": 46
+    },
+    {
+      "question": "快递一般多久能到？",
+      "input_tokens": 647,
+      "output_tokens": 36
+    },
+    {
+      "question": "快递一般多久能到？",
+      "input_tokens": 647,
+      "output_tokens": 45
+    },
+    {
+      "question": "双11活动什么时候？",
+      "input_tokens": 646,
+      "output_tokens": 99
+    },
+    {
+      "question": "双11活动什么时候？",
+      "input_tokens": 646,
+      "output_tokens": 49
+    },
+    {
+      "question": "双11活动什么时候？",
+      "input_tokens": 646,
+      "output_tokens": 41
+    },
+    {
+      "question": "双11活动什么时候？",
+      "input_tokens": 646,
+      "output_tokens": 47
+    },
+    {
+      "question": "双11活动什么时候？",
+      "input_tokens": 646,
+      "output_tokens": 94
+    },
+    {
+      "question": "商品破损了运费谁承担？",
+      "input_tokens": 578,
+      "output_tokens": 120
+    },
+    {
+      "question": "商品破损了运费谁承担？",
+      "input_tokens": 578,
+      "output_tokens": 75
+    },
+    {
+      "question": "商品破损了运费谁承担？",
+      "input_tokens": 578,
+      "output_tokens": 91
+    },
+    {
+      "question": "商品破损了运费谁承担？",
+      "input_tokens": 578,
+      "output_tokens": 100
+    },
+    {
+      "question": "商品破损了运费谁承担？",
+      "input_tokens": 578,
+      "output_tokens": 101
+    }
+  ]
+}

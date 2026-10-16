@@ -12,6 +12,10 @@ from rag.logging_config import get_logger
 from rag.retrieval import BgeReranker
 from rag.vectorstore import ChromaStore
 
+from rag.retrieval.query_transform import QueryRewriter
+from rag.retrieval.bm25_retriever import BM25Retriever
+from rag.retrieval.rrf_fusion import rrf_fusion
+
 logger = get_logger(__name__)
 
 
@@ -91,6 +95,42 @@ class RAGChain:
     def _retrieve(self, question: str, top_k: int) -> List[Tuple[Document, float]]:
         """检索 + 重排序，返回 top_k 条 (doc, score)"""
         self._ensure_store_fresh()  # ← 每次检索前检查
+
+         # 1. QueryRewrite（如果启用）
+        from rag.config import settings
+        if getattr(settings, "query_rewrite_enabled", False):
+            logger.info("【v2】QueryRewrite 启用")          
+            
+            rewriter = QueryRewriter(self._llm)
+            rewritten = rewriter.rewrite(question)
+            logger.info("【v2】改写结果: %s", rewritten)
+            # rewritten = [question] + 2 个变体
+            queries = [question] + rewritten[:2]
+
+            # 2. 对每个变体做"原始向量召回 + BM25 召回"
+            all_docs = self._store.get_all_documents()
+            bm25 = BM25Retriever(all_docs)
+
+            all_dense = []
+            all_sparse = []
+            for q in queries:
+                q_emb = self._embedder.embed_query(q)
+                all_dense.extend(self._store.search(q_emb, top_k=top_k * 3))
+                all_sparse.extend(bm25.search(q, top_k=top_k * 3))
+
+            # 3. RRF 融合
+            candidates = rrf_fusion([all_dense, all_sparse], top_k=top_k * 3)
+
+            # 4. Reranker 精排
+            if not self._use_reranker:
+                return candidates[:top_k]
+            if self._reranker is None:
+                self._reranker = BgeReranker()
+            rerank_query = rewritten[0] if rewritten else question
+            logger.info("【v2】Reranker 用 query: %s", rerank_query)
+            return self._reranker.rerank(rerank_query, candidates, top_k=top_k)
+
+        # 旧逻辑（v1）
         q_emb = self._embedder.embed_query(question)
 
         try:
@@ -109,7 +149,7 @@ class RAGChain:
             return candidates[:top_k]
 
         if self._reranker is None:
-            self._reranker = BgeReranker()
+            self._reranker = BgeReranker()        
         return self._reranker.rerank(question, candidates, top_k=top_k)
 
     def _build_messages(

@@ -69,6 +69,8 @@ htmlcov/
 
 # benchmark 输出，不提交（README 里有摘要）
 benchmarks/results/*.json
+!benchmarks/results/archive/
+!benchmarks/results/archive/*.json
 
 # ==================== 其他 ====================
 *.pid
