@@ -216,6 +216,7 @@ python scripts/benchmark_cost.py
 >
 > 实验脚本位于 `scripts/benchmark_v2*.py` 与 `scripts/finetune/`，实验报告输出到 `docs/v2/`。
 
+
 ### M1 检索增强（修复 v1 已知 Badcase）
 
 - **BM25 关键词检索 + RRF 倒数排序融合**：关键词与语义双路召回互补，修复「我下单后多久能收到」字面重叠误召回
@@ -225,11 +226,14 @@ python scripts/benchmark_cost.py
 
 ### M2 领域微调（LLaMA-Factory + Qwen2.5-1.5B）
 
-- **数据准备**：v1 的 23 条知识库 + 反馈闭环 Badcase → DeepSeek 批量生成客服问答对（每条知识 3~5 种问法）→ 人工抽检修订 → **500~800 条 SFT 数据**（Alpaca 格式）；清洗规则：去重（答案 hash）、长度分布检查、格式统一，10% 划验证集，**混入 15% 通用指令数据防遗忘**
-- **训练**：LoRA / QLoRA / 全参三路对比；消融 `lora_rank`（8/16/32）、`learning_rate`（5e-5/1e-4/2e-4）、`epochs`（2/3/5），观察过拟合拐点
-- **治理**：早停（验证 loss 连续 2 eval 上升即停）治过拟合；通用数据 replay + 低秩约束 + 冻结主干治灾难性遗忘
-- **部署**：`merge_and_unload` 合并 → vLLM OpenAI 兼容 API；另导出 GGUF Q4 量化版（Ollama）
-- **闭环**：微调模型经 `LLM` 抽象基类接入 RAGChain，与 DeepSeek 一键切换，产出 **质量 / 延迟 / 成本** 三维对比
+- **框架**：LLaMA-Factory 0.8.2 + Qwen2.5-0.5B + QLoRA
+- **训练数据**：950 条（v1 知识库"扩法 1+3"生成）
+- **训练环境**：AutoDL RTX 4090D（¥1.88/时）
+- **训练时长**：10 分 41 秒 / **成本 ¥0.35**
+- **loss 曲线**：3.9 → 0.9（收敛无过拟合）
+- **LoRA 权重**：34MB / 可训练参数 8.8M（1.75%）
+- **微调效果**：客服话术 100% 化（`亲~...哦~`）
+- **报告**：[docs/v2/finetune_report.md](docs/v2/finetune_report.md)
 
 ### M3 评估体系（RAGAS + 双轨评测）
 
