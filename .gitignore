@@ -9,6 +9,7 @@ secrets.yaml
 storage/
 chroma_db/
 cache/
+volumes/
 *.chroma
 .huggingface/
 
@@ -24,6 +25,7 @@ data/**/*.bak
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 *.egg-info/
 *.egg
 .venv/
@@ -68,6 +70,7 @@ htmlcov/
 .tox/
 
 # benchmark 输出，不提交（README 里有摘要）
+# benchmarks/results/
 benchmarks/results/*.json
 !benchmarks/results/archive/
 !benchmarks/results/archive/*.json

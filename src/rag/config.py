@@ -53,4 +53,8 @@ class Settings(BaseSettings):
 
     query_rewrite_enabled: bool = False   # 默认 False，通过 .env 开启
 
+    # v2 M4 新增配置
+    vector_store_type: str = "chroma"  # 默认 chroma，可选 milvus
+    milvus_uri: str = "http://localhost:19530"
+
 settings = Settings()

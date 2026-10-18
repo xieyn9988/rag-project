@@ -7,6 +7,7 @@ from rag.ingestion.loaders import load_documents
 from rag.ingestion.splitters import split_documents
 from rag.logging_config import get_logger
 from rag.vectorstore import ChromaStore
+from rag.vectorstore import build_vector_store
 
 logger = get_logger(__name__)
 
@@ -16,10 +17,11 @@ def ingest(data_dir: Path | None = None, rebuild: bool = False) -> int:
     data_dir = data_dir or settings.resolve(settings.data_dir)
 
     embedder = build_embedder()
-    store = ChromaStore(
-        persist_dir=str(settings.resolve(settings.chroma_dir)),
-        collection_name=settings.collection_name,
-    )
+    #store = ChromaStore(
+    #    persist_dir=str(settings.resolve(settings.chroma_dir)),
+    #    collection_name=settings.collection_name,
+    #)
+    store = build_vector_store()
 
     if rebuild:
         logger.warning("rebuild=True，清空现有集合")

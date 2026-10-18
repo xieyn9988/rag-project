@@ -10,11 +10,14 @@ from rag.embedding import build_embedder
 from rag.llm import build_llm
 from rag.logging_config import get_logger
 from rag.retrieval import BgeReranker
-from rag.vectorstore import ChromaStore
+#from rag.vectorstore.factory import build_vector_store
 
 from rag.retrieval.query_transform import QueryRewriter
 from rag.retrieval.bm25_retriever import BM25Retriever
 from rag.retrieval.rrf_fusion import rrf_fusion
+
+from rag.vectorstore import build_vector_store
+
 
 logger = get_logger(__name__)
 
@@ -45,10 +48,11 @@ class StreamChunk:
 class RAGChain:
     def __init__(self, use_reranker: bool = True):
         self._embedder = build_embedder()
-        self._store = ChromaStore(
-            str(settings.resolve(settings.chroma_dir)),
-            settings.collection_name,
-        )
+        #self._store = ChromaStore(
+        #    str(settings.resolve(settings.chroma_dir)),
+        #    settings.collection_name,
+        #)
+        self._store = build_vector_store()
         self._llm = build_llm()
         self._prompt = self._load_prompt()
         self._reranker: BgeReranker | None = None
@@ -64,11 +68,13 @@ class RAGChain:
             current_count = self._store.count()
         except Exception as e:
             # store 异常（collection 不存在、磁盘问题等）
-            logger.warning("Store 异常 (%s)，重建 ChromaStore", e)            
-            self._store = ChromaStore(
-                str(settings.resolve(settings.chroma_dir)),
-                settings.collection_name,
-            )
+            #logger.warning("Store 异常 (%s)，重建 ChromaStore", e)    
+            logger.warning("Store 异常 (%s)，触发工厂重建", e)         
+            #self._store = ChromaStore(
+            #    str(settings.resolve(settings.chroma_dir)),
+            #    settings.collection_name,
+            #)
+            self._store = build_vector_store()
             self._store_count = self._store.count()
             return
 
@@ -78,10 +84,11 @@ class RAGChain:
                 self._store_count,
                 current_count,
             )
-            self._store = ChromaStore(
-                str(settings.resolve(settings.chroma_dir)),
-                settings.collection_name,
-            )
+            self._store = build_vector_store()
+            #self._store = ChromaStore(                
+                #str(settings.resolve(settings.chroma_dir)),
+                #settings.collection_name,
+            #)
             self._store_count = current_count
 
     @staticmethod
@@ -138,10 +145,11 @@ class RAGChain:
         except Exception as e:
             # collection 不存在或损坏 → 重建后重试一次
             logger.warning("检索失败 (%s)，重建 store 后重试", e)
-            self._store = ChromaStore(
-                str(settings.resolve(settings.chroma_dir)),
-                settings.collection_name,
-            )
+            self._store = build_vector_store()
+            #self._store = ChromaStore(
+            #    str(settings.resolve(settings.chroma_dir)),
+            #    settings.collection_name,
+            #)
             self._store_count = self._store.count()
             candidates = self._store.search(q_emb, top_k=top_k * 3)
 
